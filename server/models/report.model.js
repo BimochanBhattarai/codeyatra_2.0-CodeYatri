@@ -1,5 +1,12 @@
 import mongoose from "mongoose";
 
+/*
+* Defining the schema for the report model. 
+* The report model is the main model used by users to report incidents.
+* Model defines GPS variables, number of casualties, type of incident, description and user data.
+* Defines status of the report for tracking.
+*/
+
 const report_schema = new mongoose.Schema(
   {
     report_id: { type: String, required: true, unique: true },
