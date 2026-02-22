@@ -1,5 +1,6 @@
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import ReactQueryProvider from "@/utils/ReactQueryProvider";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 
@@ -30,9 +31,11 @@ export default function RootLayout({ children }) {
       <body
         className={`${poppinsFont.variable} font-(--font-poppins) antialiased`}
       >
-        <Header />
-        <div>{children}</div>
-        <Footer />
+        <ReactQueryProvider>
+          <Header />
+          <div>{children}</div>
+          <Footer />
+        </ReactQueryProvider>
       </body>
     </html>
   );
