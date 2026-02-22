@@ -23,9 +23,7 @@ const report_schema = new mongoose.Schema(
     },
   },
   { timestamps: true },
-);git remote remove origin
-git remote add origin https://github.com/BimochanBhattarai/codeyatra_2.0-CodeYatri.git
-git remote -v
+);
 
 const report_model = mongoose.model("report", report_schema);
 
