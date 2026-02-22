@@ -286,7 +286,7 @@ const INCIDENT_TYPES = [
 // ─── Step Progress Bar ────────────────────────────────────────────────────────
 
 function StepProgressBar({ currentStep }) {
-  const progressValue = (currentStep / STEPS.length) * 100;
+  const progressValue = ((currentStep - 1) / STEPS.length) * 100;
   return (
     <div className="bg-white">
       <div className="mb-4">
@@ -906,7 +906,7 @@ export default function AccidentReportPage() {
         estimated_number_of_casualties: parseInt(formData.casualties, 10),
         incident_type: formData.incidentType,
         description: formData.description,
-        phone: formData.phone,
+        phone_number: formData.phone,
         photos: formData.images,
       },
       {
