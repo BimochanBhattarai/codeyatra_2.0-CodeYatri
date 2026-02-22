@@ -5,7 +5,7 @@ import path from "path";
 import { handle_add_report } from "../controllers/report.controller.js";
 
 const reportFileUpload = multer({
-  limits: { fileSize: 1000000 },
+  limits: { fileSize: 10000000 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname.match(/\.(png|jpg|jpeg)$/)) {
       return cb(new Error("Only image files are allowed !"), false);
@@ -25,7 +25,7 @@ const reportFileUpload = multer({
 const reportFileSizeErrorHandler = (err, req, res, next) => {
   if (err) {
     if (err.code === "LIMIT_FILE_SIZE") {
-      res.status(400).json({ message: "File size limit of 1MB exceeded !" });
+      res.status(400).json({ message: "File size limit of 10MB exceeded !" });
     } else {
       res.status(400).json({ message: err.message });
     }
@@ -38,7 +38,7 @@ const report_router = express.Router();
 
 report_router.post(
   "/add",
-  reportFileUpload.array("images", 5),
+  reportFileUpload.array("photos", 5),
   reportFileSizeErrorHandler,
   handle_add_report,
 );

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCreateReport } from "@/hooks/useCreateReport";
 import "leaflet/dist/leaflet.css";
 import {
   AlertTriangle,
@@ -17,8 +18,6 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-
-// ─── Leaflet Map ──────────────────────────────────────────────────────────────
 
 function MapPicker({ latitude, longitude, onLocationSelect }) {
   const mapRef = useRef(null);
@@ -141,8 +140,6 @@ function MapPicker({ latitude, longitude, onLocationSelect }) {
     </div>
   );
 }
-
-// ─── Primitive UI ─────────────────────────────────────────────────────────────
 
 function Input({
   id,
@@ -879,7 +876,7 @@ export default function AccidentReportPage() {
   const { toast, ToastContainer } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isComplete, setIsComplete] = useState(false);
-  const [reportId] = useState(() => `ER-${Date.now().toString().slice(-8)}`);
+  const [reportId, setReportId] = useState();
   const [formData, setFormData] = useState({
     location: "",
     latitude: null,
@@ -892,13 +889,38 @@ export default function AccidentReportPage() {
     phone: "",
   });
 
+  const { mutate: createReport, isPending: isCreatingReport } =
+    useCreateReport();
+
   const updateFormData = (data) =>
     setFormData((prev) => ({ ...prev, ...data }));
   const handleNext = () => setCurrentStep((p) => Math.min(p + 1, STEPS.length));
   const handlePrevious = () => setCurrentStep((p) => Math.max(p - 1, 1));
   const handleSubmit = () => {
-    setIsComplete(true);
-    console.log("Submitted report data:", formData);
+    createReport(
+      {
+        location: {
+          latitude: formData.latitude,
+          longitude: formData.longitude,
+        },
+        estimated_number_of_casualties: parseInt(formData.casualties, 10),
+        incident_type: formData.incidentType,
+        description: formData.description,
+        phone: formData.phone,
+        photos: formData.images,
+      },
+      {
+        onSuccess: (data) => {
+          toast.success("Emergency report submitted successfully.");
+          setIsComplete(true);
+          setReportId(data?.data?.report_id);
+        },
+        onError: () => {
+          toast.error("Failed to submit report. Please try again.");
+          setCurrentStep(3);
+        },
+      },
+    );
   };
   const handleReset = () => {
     setIsComplete(false);

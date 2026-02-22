@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import report_model from "../models/report.model.js";
 
 export const handle_add_report = async (req, res) => {
@@ -10,12 +12,17 @@ export const handle_add_report = async (req, res) => {
       phone_number,
     } = req.body;
 
+    const parsed_location = location ? JSON.parse(location) : null;
+
     const files = req.files || [];
 
+    const report_id = `RE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
     const report = await report_model.create({
+      report_id,
       location: {
-        latitude: location?.latitude || null,
-        longitude: location?.longitude || null,
+        latitude: parsed_location?.latitude || null,
+        longitude: parsed_location?.longitude || null,
       },
       estimated_number_of_casualties: estimated_number_of_casualties || null,
       incident_type: incident_type || "",
