@@ -1,15 +1,22 @@
 import dotenv from "dotenv";
 import express from "express";
+import report_routes from "./routes/report.route.js";
+import { connect_to_db } from "./utils/db.js";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.get("/api", (req, res) => {
-  res.json({ message: "Hello from the server!" });
-});
+app.use(express.json({ limit: "1gb" }));
+
+app.use(express.static("uploads"));
+
+app.use(express.urlencoded({ limit: "1gb", extended: true }));
+
+app.use("/api/report", report_routes);
 
 app.listen(PORT, () => {
+  connect_to_db();
   console.log(`Server is running on port ${PORT}`);
 });
