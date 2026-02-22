@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import path from "path";
-import { handle_add_report } from "../controllers/report.controller.js";
+import { handle_add_report, handle_get_reports } from "../controllers/report.controller.js";
 
 const reportFileUpload = multer({
   limits: { fileSize: 10000000 },
@@ -42,5 +42,5 @@ report_router.post(
   reportFileSizeErrorHandler,
   handle_add_report,
 );
-
+report_router.get("/all", handle_get_reports);
 export default report_router;

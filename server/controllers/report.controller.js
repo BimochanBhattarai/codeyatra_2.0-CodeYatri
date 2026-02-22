@@ -72,3 +72,25 @@ export const handle_add_report = async (req, res) => {
     });
   }
 };
+
+export const handle_get_reports = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const reports = await report_model.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Reports retrieved successfully.",
+      data: reports,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: err.message,
+    });
+  }
+};
