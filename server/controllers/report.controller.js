@@ -2,6 +2,12 @@ import fs from "fs";
 import path from "path";
 import report_model from "../models/report.model.js";
 
+/*
+  * This route allows users to submit a report of an Incident.
+  * The report includes location, estimated number of casualties, incident type, description, and phone number.
+  * Users can also upload photos related to the incident.
+*/
+
 export const handle_add_report = async (req, res) => {
   try {
     const {
