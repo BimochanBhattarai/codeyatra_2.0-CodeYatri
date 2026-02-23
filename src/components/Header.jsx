@@ -2,7 +2,7 @@
 
 import { AuthContext } from "@/contexts/AuthProvider";
 import { useLogoutUser } from "@/hooks/user/useLogoutUser";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useContext, useEffect, useState } from "react";
@@ -78,6 +78,16 @@ const Header = () => {
               })}
             </div>
           </div>
+          {user &&
+            (user.user_type === "admin" ||
+              user.user_type === "police_officer") && (
+              <Link
+                href={"/settings"}
+                className="hover:text-red-600 disabled:opacity-50 transition-all ease-in-out duration-300 cursor-pointer"
+              >
+                <Settings size={20} />
+              </Link>
+            )}
           {user && (
             <button
               onClick={() => {

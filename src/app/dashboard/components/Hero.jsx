@@ -1,16 +1,22 @@
 "use client";
 
 import { AuthContext } from "@/contexts/AuthProvider";
+import { useGetActiveReports } from "@/hooks/report/useGetActiveReports";
+import { useGetAllReports } from "@/hooks/report/useGetAllReports";
 import { useGetUserReports } from "@/hooks/report/useGetUserReports";
 import { useGetUserTypeChangeApplications } from "@/hooks/user/useGetUserTypeChangeApplications";
 import {
   AlertCircle,
+  AlertTriangle,
   Ambulance,
   Building2,
+  Car,
   CheckCircle2,
   Clock,
   FileText,
+  Flame,
   MapPin,
+  Siren,
 } from "lucide-react";
 import Link from "next/link";
 import { useContext } from "react";
@@ -21,25 +27,65 @@ const STATUS_STYLES = {
     className: "bg-yellow-100 text-yellow-700 border border-yellow-200",
     icon: Clock,
   },
-  dispatched: {
-    label: "Dispatched",
-    className: "bg-blue-100 text-blue-700 border border-blue-200",
+  cancelled: {
+    label: "Cancelled",
+    className: "bg-gray-100 text-gray-700 border border-gray-200",
     icon: AlertCircle,
+  },
+  verified: {
+    label: "Verified",
+    className: "bg-green-100 text-green-700 border border-green-200",
+    icon: CheckCircle2,
+  },
+  rejected: {
+    label: "Rejected",
+    className: "bg-red-100 text-red-700 border border-red-200",
+    icon: AlertCircle,
+  },
+  in_progress: {
+    label: "In Progress",
+    className: "bg-blue-100 text-blue-700 border border-blue-200",
+    icon: Siren,
   },
   resolved: {
     label: "Resolved",
     className: "bg-green-100 text-green-700 border border-green-200",
-    icon: CheckCircle2,
+    icon: FileText,
   },
 };
 
-const INCIDENT_LABELS = {
-  accident: "Accident",
-  medical: "Medical Emergency",
-  fire: "Fire / Disaster",
-  fight: "Fight / Assault",
-  other: "Other",
-};
+const INCIDENT_TYPES = [
+  {
+    value: "accident",
+    label: "Accident",
+    icon: Car,
+    description: "Vehicle collision or crash",
+  },
+  {
+    value: "fight",
+    label: "Fight/Assault",
+    icon: AlertTriangle,
+    description: "Physical altercation",
+  },
+  {
+    value: "fire",
+    label: "Fire/Disaster",
+    icon: Flame,
+    description: "Fire or natural disaster",
+  },
+  {
+    value: "medical",
+    label: "Medical Emergency",
+    icon: Siren,
+    description: "Health emergency",
+  },
+  {
+    value: "other",
+    label: "Other",
+    icon: AlertTriangle,
+    description: "Other emergency type",
+  },
+];
 
 function StatusBadge({ status }) {
   const config = STATUS_STYLES[status] ?? STATUS_STYLES.pending;
@@ -65,47 +111,63 @@ function ReportCard({ report }) {
   });
 
   return (
-    <div className="border border-gray-200 rounded-xl p-4 space-y-3 hover:border-red-200 hover:bg-red-50/30 transition-all">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="bg-red-100 p-2 rounded-lg shrink-0">
-            <FileText className="w-4 h-4 text-red-600" />
+    <Link href={`/track_report?report_id=${report.report_id}`}>
+      <div className="border border-gray-200 rounded-xl p-4 space-y-3 hover:border-red-200 hover:bg-red-50/30 transition-all">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="bg-red-100 p-2 rounded-lg shrink-0">
+              {(() => {
+                const incident = INCIDENT_TYPES.find(
+                  (type) => type.value === report.incident_type,
+                );
+                const Icon = incident ? incident.icon : AlertCircle;
+                return <Icon className="w-4 h-4 text-red-600" />;
+              })()}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">
+                {INCIDENT_TYPES.find(
+                  (type) => type.value === report.incident_type,
+                )?.label ?? "Emergency"}{" "}
+                Report
+              </p>
+              <p className="text-xs text-gray-400 font-mono">{report.id}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-800">
-              {INCIDENT_LABELS[report.incident_type] ?? "Emergency"} Report
-            </p>
-            <p className="text-xs text-gray-400 font-mono">{report.id}</p>
-          </div>
+          <StatusBadge status={report.status} />
         </div>
-        <StatusBadge status={report.status} />
-      </div>
 
-      <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-        <span className="flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-gray-400" />
-          <Link
-            href={`https://www.google.com/maps/search/?api=1&query=${report.location.latitude},${report.location.longitude}`}
-            target="_blank"
-            className="underline hover:text-red-600 transition-colors"
-          >
-            {report.location.latitude.toFixed(4)},{" "}
-            {report.location.longitude.toFixed(4)}
-          </Link>
-        </span>
-        <span className="flex items-center gap-1">
-          <AlertCircle className="w-3 h-3 text-gray-400" />
-          {report.estimated_number_of_casualties}{" "}
-          {report.estimated_number_of_casualties === 1
-            ? "casualty"
-            : "casualties"}
-        </span>
-      </div>
+        <div className="flex flex-wrap gap-3 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-gray-400" />
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(
+                  `https://www.google.com/maps/search/?api=1&query=${report.location.latitude},${report.location.longitude}`,
+                  "_blank",
+                );
+              }}
+              className="underline hover:text-red-600 transition-colors cursor-pointer"
+            >
+              {report.location.latitude.toFixed(4)},{" "}
+              {report.location.longitude.toFixed(4)}
+            </button>
+          </span>
+          <span className="flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 text-gray-400" />
+            {report.estimated_number_of_casualties}{" "}
+            {report.estimated_number_of_casualties === 1
+              ? "casualty"
+              : "casualties"}
+          </span>
+        </div>
 
-      <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-2">
-        Reported on {date}
-      </p>
-    </div>
+        <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-2">
+          Reported on {date}
+        </p>
+      </div>
+    </Link>
   );
 }
 
@@ -116,6 +178,17 @@ const Hero = () => {
 
   const { data: userTypeChangeApplications } =
     useGetUserTypeChangeApplications();
+
+  const isPoliceOrAdmin = !!(
+    user &&
+    (user.user_type === "police" || user.user_type === "admin")
+  );
+
+  const { data: allReports } = useGetAllReports({ enabled: isPoliceOrAdmin });
+
+  const { data: activeReports } = useGetActiveReports({
+    enabled: isPoliceOrAdmin,
+  });
 
   if (!user) return null;
 
@@ -128,8 +201,10 @@ const Hero = () => {
         </h2>
         <p className="text-gray-500 text-sm">
           You are signed in as a{" "}
-          <span className="font-bold text-red-600">{user.user_type}</span>.
-          Here&apos;s your activity overview.
+          <span className="font-bold text-red-600">
+            {user.user_type.split("_").join(" ")}
+          </span>
+          . Here&apos;s your activity overview.
         </p>
       </div>
 
@@ -176,6 +251,48 @@ const Hero = () => {
         </div>
       )}
 
+      {user &&
+        (user.user_type === "police_officer" || user.user_type === "admin") && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                Active Reports
+              </h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              {activeReports?.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No active reports at the moment.
+                </p>
+              ) : (
+                activeReports?.map((report) => (
+                  <ReportCard key={report._id} report={report} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
+      {user &&
+        (user.user_type === "police_officer" || user.user_type === "admin") && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                All Reports
+              </h3>
+            </div>
+            <div className="flex flex-col gap-3">
+              {allReports?.length === 0 ? (
+                <p className="text-sm text-gray-500">No reports found.</p>
+              ) : (
+                allReports?.map((report) => (
+                  <ReportCard key={report._id} report={report} />
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
       {user && user.type_conversion_lock && userTypeChangeApplications && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -183,7 +300,7 @@ const Hero = () => {
               My Applications
             </h3>
           </div>
-          <div className="space-y-3">
+          <div className="flex flex-col gap-3">
             {userTypeChangeApplications.length === 0 ? (
               <p className="text-sm text-gray-500">No applications found.</p>
             ) : (
@@ -236,7 +353,7 @@ const Hero = () => {
             New Report
           </Link>
         </div>
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {userReports?.map((report) => (
             <ReportCard key={report._id} report={report} />
           ))}

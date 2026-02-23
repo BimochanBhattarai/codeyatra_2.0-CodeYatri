@@ -3,9 +3,16 @@ import multer from "multer";
 import { nanoid } from "nanoid";
 import path from "path";
 import {
+  handle_accept_ambulance_offer,
   handle_add_report,
-  handle_get_reports,
+  handle_cancel_report,
+  handle_get_active_reports,
+  handle_get_all_reports,
+  handle_get_report_by_id,
   handle_get_user_reports,
+  handle_reject_ambulance_offer,
+  handle_reject_report,
+  handle_verify_report,
 } from "../controllers/report.controller.js";
 
 const reportFileUpload = multer({
@@ -46,8 +53,28 @@ report_router.post(
   reportFileSizeErrorHandler,
   handle_add_report,
 );
-report_router.get("/all", handle_get_reports);
-
 report_router.get("/user", handle_get_user_reports);
+
+report_router.get("/all", handle_get_all_reports);
+
+report_router.get("/active", handle_get_active_reports);
+
+report_router.get("/track/:report_id", handle_get_report_by_id);
+
+report_router.post("/reject/:report_id", handle_reject_report);
+
+report_router.post("/cancel/:report_id", handle_cancel_report);
+
+report_router.post("/verify/:report_id", handle_verify_report);
+
+report_router.post(
+  "/accept_ambulance_offer/:report_id",
+  handle_accept_ambulance_offer,
+);
+
+report_router.post(
+  "/reject_ambulance_offer/:report_id",
+  handle_reject_ambulance_offer,
+);
 
 export default report_router;

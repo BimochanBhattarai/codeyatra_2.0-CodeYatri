@@ -18,9 +18,45 @@ const report_schema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "verified", "in_progress", "resolved", "rejected"],
+      enum: [
+        "pending",
+        "verified",
+        "in_progress",
+        "halted",
+        "resolved",
+        "rejected",
+        "cancelled",
+      ],
       default: "pending",
     },
+    timeline: [
+      {
+        date: { type: Date, default: Date.now },
+        action: { type: String, required: true },
+        performed_by: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
+      },
+    ],
+    offered_to_ambulance_drivers: [
+      {
+        driver: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "ambulance_driver",
+        },
+        status: {
+          type: String,
+          enum: ["pending", "accepted", "rejected"],
+          default: "pending",
+        },
+        response_date: { type: Date },
+        response_location: {
+          latitude: { type: Number },
+          longitude: { type: Number },
+        },
+      },
+    ],
   },
   { timestamps: true },
 );

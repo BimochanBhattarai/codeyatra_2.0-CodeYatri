@@ -41,12 +41,7 @@ const startAdminPanel = async () => {
   };
 
   const adminOptions = {
-    resources: [
-      ambulance_driver_model,
-      // report_model,
-      user_verification_model,
-      user_model,
-    ],
+    resources: [ambulance_driver_model, user_verification_model, user_model],
     rootPath: "/admin",
     componentLoader,
   };
