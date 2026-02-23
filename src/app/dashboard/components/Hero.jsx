@@ -10,14 +10,13 @@ import {
   AlertCircle,
   AlertTriangle,
   Ambulance,
-  Building2,
   Car,
   CheckCircle2,
   Clock,
   FileText,
   Flame,
   MapPin,
-  Siren,
+  Siren
 } from "lucide-react";
 import Link from "next/link";
 import { useContext } from "react";
@@ -218,8 +217,8 @@ const Hero = () => {
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
             Expand Your Role
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Link
+          <div className="grid grid-cols-1 gap-3">
+            {/* <Link
               href="/dashboard/register/hospital"
               className="flex items-center gap-4 border-2 border-gray-200 hover:border-red-500 hover:bg-red-50/40 rounded-xl p-4 transition-all ease-in-out duration-300 group"
             >
@@ -234,7 +233,7 @@ const Hero = () => {
                   Manage incoming ambulances & emergency alerts.
                 </p>
               </div>
-            </Link>
+            </Link> */}
 
             <Link
               href="/dashboard/register/driver"
