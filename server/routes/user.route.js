@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  handle_get_user_type_change_applications,
   handle_login_user,
   handle_logout_user,
   handle_register_user,
@@ -21,5 +22,10 @@ user_router.post("/login", handle_login_user);
 user_router.post("/logout", handle_logout_user);
 
 user_router.post("/verify_user_token", handle_verify_user_token);
+
+user_router.get(
+  "/user_type_change_applications",
+  handle_get_user_type_change_applications,
+);
 
 export default user_router;

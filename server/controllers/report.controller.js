@@ -1,6 +1,8 @@
 import fs from "fs";
+import jwt from "jsonwebtoken";
 import path from "path";
 import report_model from "../models/report.model.js";
+import user_model from "../models/user.model.js";
 
 /*
  * This route allows users to submit a report of an Incident.
@@ -63,6 +65,40 @@ export const handle_add_report = async (req, res) => {
       status: "success",
       message: "Report created successfully.",
       data: report,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: err.message,
+    });
+  }
+};
+
+export const handle_get_user_reports = async (req, res) => {
+  try {
+    const { token } = req.cookies;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user_id = decoded.user_id;
+
+    const user = await user_model.findById(user_id);
+
+    if (!user) {
+      return res.status(401).json({
+        status: "error",
+        message: "Unauthorized.",
+      });
+    }
+
+    const reports = await report_model
+      .find({ phone_number: user.phone_number })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      status: "success",
+      message: "User reports retrieved successfully.",
+      data: reports,
     });
   } catch (err) {
     return res.status(500).json({

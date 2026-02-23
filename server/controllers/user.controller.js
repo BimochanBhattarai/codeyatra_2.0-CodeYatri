@@ -1,5 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import ambulance_driver_model from "../models/ambulance_driver.model.js";
 import user_model from "../models/user.model.js";
 import user_verification_model from "../models/user_verification.model.js";
 import { handle_send_sms } from "../utils/sms_sender.js";
@@ -217,6 +218,8 @@ export const handle_login_user = async (req, res) => {
         user_id: user._id,
         full_name: user.full_name,
         phone_number: user.phone_number,
+        user_type: user.user_type,
+        type_conversion_lock: user.type_conversion_lock,
       },
     });
   } catch (err) {
@@ -277,10 +280,47 @@ export const handle_verify_user_token = async (req, res) => {
         user_id: user._id,
         full_name: user.full_name,
         phone_number: user.phone_number,
+        user_type: user.user_type,
+        type_conversion_lock: user.type_conversion_lock,
       },
     });
   } catch (err) {
     res.clearCookie("token");
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: err.message,
+    });
+  }
+};
+
+export const handle_get_user_type_change_applications = async (req, res) => {
+  try {
+    const { token } = req.cookies;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user_id = decoded.user_id;
+
+    const user = await user_model.findById(user_id);
+
+    if (!user) {
+      return res.status(404).json({
+        status: "error",
+        message: "User not found.",
+      });
+    }
+
+    const ambulance_applications = await ambulance_driver_model.find({
+      user_id: user._id,
+      status: "pending",
+    });
+
+    return res.status(200).json({
+      status: "success",
+      data: ambulance_applications,
+    });
+  } catch (err) {
     return res.status(500).json({
       status: "error",
       message: "Internal server error.",

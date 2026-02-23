@@ -6,6 +6,21 @@ const user_schema = new mongoose.Schema(
     phone_number: { type: String, required: true, unique: true },
     password_hash: { type: String, required: true },
     phone_verified: { type: Boolean, default: false },
+    user_type: {
+      type: String,
+      enum: [
+        "user",
+        "admin",
+        "ambulance_driver",
+        "hospital_staff",
+        "police_officer",
+      ],
+      default: "user",
+    },
+    type_conversion_lock: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
