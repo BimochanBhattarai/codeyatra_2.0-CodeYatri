@@ -1,5 +1,11 @@
+import TrackReportCard from "./components/TrackReportCard";
+
 const page = () => {
-  return <div>page</div>;
+  return (
+    <>
+      <TrackReportCard />
+    </>
+  );
 };
 
 export default page;

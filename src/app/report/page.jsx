@@ -17,6 +17,7 @@ import {
   Siren,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -919,9 +920,12 @@ export default function AccidentReportPage() {
             <div className="bg-red-50 p-4 rounded-lg max-w-xs mx-auto border border-red-100 mb-4">
               <p className="text-sm text-gray-600 mb-1">
                 Report ID:{" "}
-                <span className="font-mono font-bold text-red-600">
+                <Link
+                  href={`/track_report?report_id=${reportId}`}
+                  className="font-mono font-bold text-red-600"
+                >
                   {reportId}
-                </span>
+                </Link>
               </p>
               <p className="text-xs text-gray-400">Save this ID for tracking</p>
             </div>

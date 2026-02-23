@@ -1,12 +1,5 @@
 import mongoose from "mongoose";
 
-/*
-* Defining the schema for the report model. 
-* The report model is the main model used by users to report incidents.
-* Model defines GPS variables, number of casualties, type of incident, description and user data.
-* Defines status of the report for tracking.
-*/
-
 const report_schema = new mongoose.Schema(
   {
     report_id: { type: String, required: true, unique: true },
@@ -16,7 +9,7 @@ const report_schema = new mongoose.Schema(
     },
     estimated_number_of_casualties: { type: Number, required: true },
     incident_type: { type: String, required: true },
-    photos: [{ type: String }],
+    photos: { type: [String], default: [] },
     description: { type: String },
     phone_number: { type: String, required: true },
     reporter_user: {
@@ -25,9 +18,45 @@ const report_schema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "verified", "in_progress", "resolved", "rejected"],
+      enum: [
+        "pending",
+        "verified",
+        "in_progress",
+        "halted",
+        "resolved",
+        "rejected",
+        "cancelled",
+      ],
       default: "pending",
     },
+    timeline: [
+      {
+        date: { type: Date, default: Date.now },
+        action: { type: String, required: true },
+        performed_by: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+        },
+      },
+    ],
+    offered_to_ambulance_drivers: [
+      {
+        driver: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "ambulance_driver",
+        },
+        status: {
+          type: String,
+          enum: ["pending", "accepted", "rejected"],
+          default: "pending",
+        },
+        response_date: { type: Date },
+        response_location: {
+          latitude: { type: Number },
+          longitude: { type: Number },
+        },
+      },
+    ],
   },
   { timestamps: true },
 );
