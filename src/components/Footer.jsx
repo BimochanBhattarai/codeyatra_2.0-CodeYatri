@@ -1,8 +1,16 @@
 "use client";
 
-import { FileText, LayoutDashboard, LogIn, UserPlus } from "lucide-react";
+import { AuthContext } from "@/contexts/AuthProvider";
+import {
+  ClipboardClock,
+  FileText,
+  LayoutDashboard,
+  LogIn,
+  UserPlus,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useContext, useEffect, useState } from "react";
 
 const navItems = [
   {
@@ -12,27 +20,56 @@ const navItems = [
     sublabel: "Report an Emergency",
   },
   {
+    href: "/track_report",
+    icon: ClipboardClock,
+    label: "Track Report",
+    sublabel: "Track Your Report Status",
+  },
+  {
     href: "/login",
     icon: LogIn,
     label: "Login",
     sublabel: "User Login",
+    hidden_when_authenticated: true,
   },
   {
     href: "/register",
     icon: UserPlus,
     label: "Register",
     sublabel: "New User Registration",
+    hidden_when_authenticated: true,
   },
   {
     href: "/dashboard",
     icon: LayoutDashboard,
     label: "Dashboard",
     sublabel: "View Your Dashboard",
+    hidden_when_unauthenticated: true,
   },
 ];
 
 const Footer = () => {
   const pathname = usePathname();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const { user } = useContext(AuthContext);
+
+  useEffect(() => {
+    setIsAuthenticated(!!user);
+  }, [user]);
+
+  const visibleItems = navItems.filter((item) => {
+    return !(
+      (isAuthenticated && item.hidden_when_authenticated) ||
+      (!isAuthenticated && item.hidden_when_unauthenticated)
+    );
+  });
+
+  const gridCols =
+    visibleItems.length <= 2
+      ? "grid-cols-2"
+      : visibleItems.length === 3
+        ? "grid-cols-3"
+        : "grid-cols-2 sm:grid-cols-4";
 
   return (
     <div className="w-full">
@@ -50,12 +87,9 @@ const Footer = () => {
 
           <div className="w-16 h-0.5 bg-red-400 rounded-full" />
 
-          {/* 
-            Mobile:  2×2 grid
-            sm:      4 columns in a row
-          */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-2xl">
-            {navItems.map((item) => {
+          {/* Nav Cards */}
+          <div className={`grid ${gridCols} gap-3 w-full max-w-2xl`}>
+            {visibleItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
 

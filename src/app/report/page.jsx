@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateReport } from "@/hooks/useCreateReport";
+import { useCreateReport } from "@/hooks/report/useCreateReport";
 import "leaflet/dist/leaflet.css";
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 function MapPicker({ latitude, longitude, onLocationSelect }) {
   const mapRef = useRef(null);
@@ -207,43 +208,6 @@ function Progress({ value = 0 }) {
   );
 }
 
-function useToast() {
-  const [toasts, setToasts] = useState([]);
-
-  const addToast = (message, type = "info") => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(
-      () => setToasts((prev) => prev.filter((t) => t.id !== id)),
-      3500,
-    );
-  };
-
-  const toast = {
-    success: (msg) => addToast(msg, "success"),
-    error: (msg) => addToast(msg, "error"),
-    info: (msg) => addToast(msg, "info"),
-  };
-
-  const ToastContainer = () => (
-    <div className="fixed top-4 right-4 z-9999 flex flex-col gap-2 pointer-events-none">
-      {toasts.map((t) => (
-        <div
-          key={t.id}
-          className={`px-4 py-3 rounded-lg shadow-lg text-sm text-white font-medium pointer-events-auto max-w-xs
-            ${t.type === "success" ? "bg-green-600" : t.type === "error" ? "bg-red-600" : "bg-gray-800"}`}
-        >
-          {t.message}
-        </div>
-      ))}
-    </div>
-  );
-
-  return { toast, ToastContainer };
-}
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
 const STEPS = [
   { id: 1, title: "Incident Details", description: "Location and type" },
   { id: 2, title: "Evidence", description: "Photo and description" },
@@ -282,8 +246,6 @@ const INCIDENT_TYPES = [
     description: "Other emergency type",
   },
 ];
-
-// ─── Step Progress Bar ────────────────────────────────────────────────────────
 
 function StepProgressBar({ currentStep }) {
   const progressValue = ((currentStep - 1) / STEPS.length) * 100;
@@ -340,8 +302,6 @@ function StepProgressBar({ currentStep }) {
   );
 }
 
-// ─── Step 1: Incident Details ─────────────────────────────────────────────────
-
 function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -350,7 +310,7 @@ function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
 
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser");
+      toast.error("Geolocation is not supported by your browser.");
       return;
     }
     setIsLoadingLocation(true);
@@ -362,7 +322,6 @@ function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
           latitude,
           longitude,
         });
-        toast.success("Location detected successfully");
         setIsLoadingLocation(false);
       },
       () => {
@@ -383,11 +342,15 @@ function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
 
   const handleNext = () => {
     if (!formData.latitude || !formData.longitude)
-      return toast.error("Please pin the incident location on the map");
+      return toast.error("Please provide the incident location.");
     if (!formData.casualties.trim())
-      return toast.error("Please estimate the number of casualties");
+      return toast.error("Please estimate the number of casualties.");
+    if (parseInt(formData.casualties) < 0)
+      return toast.error("Please enter a valid number of casualties.");
+    if (parseInt(formData.casualties) > 100)
+      return toast.error("Please enter a realistic number of casualties.");
     if (!formData.incidentType)
-      return toast.error("Please select the incident type");
+      return toast.error("Please select the incident type.");
     onNext();
   };
 
@@ -525,8 +488,6 @@ function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
   );
 }
 
-// ─── Step 2: Photo & Description ──────────────────────────────────────────────
-
 function PhotoDescriptionStep({
   formData,
   updateFormData,
@@ -555,7 +516,6 @@ function PhotoDescriptionStep({
         images: [...(formData.images || []), file],
         imagePreviews: [...(formData.imagePreviews || []), reader.result],
       });
-      toast.success("Photo added");
     };
     reader.readAsDataURL(file);
   };
@@ -716,7 +676,7 @@ function PhotoDescriptionStep({
           onClick={() => {
             if (!formData.images || formData.images.length === 0)
               return toast.error(
-                "Please take at least one photo of the incident",
+                "Please take at least one photo of the incident.",
               );
             onNext();
           }}
@@ -729,28 +689,26 @@ function PhotoDescriptionStep({
   );
 }
 
-// ─── Step 3: Phone + Submit ───────────────────────────────────────────────────
-
 function PhoneSubmitStep({
   formData,
   updateFormData,
   onSubmit,
   onPrevious,
   toast,
+  isSubmitting,
 }) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!formData.phone.trim())
-      return toast.error("Please enter your phone number");
+      return toast.error("Please enter your phone number.");
     if (formData.phone.length < 10)
-      return toast.error("Please enter a valid phone number");
+      return toast.error("Please enter a valid phone number.");
+    if (formData.phone.length > 10)
+      return toast.error("Please enter a valid phone number.");
 
-    setIsSubmitting(true);
-    // TODO: Submit formData to backend API here
-    await new Promise((r) => setTimeout(r, 1200)); // simulate API call
-    setIsSubmitting(false);
-    toast.success("Emergency report submitted!");
+    // setIsSubmitting(true);
+    // setIsSubmitting(false);
     onSubmit();
   };
 
@@ -870,10 +828,7 @@ function PhoneSubmitStep({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function AccidentReportPage() {
-  const { toast, ToastContainer } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [isComplete, setIsComplete] = useState(false);
   const [reportId, setReportId] = useState();
@@ -894,8 +849,14 @@ export default function AccidentReportPage() {
 
   const updateFormData = (data) =>
     setFormData((prev) => ({ ...prev, ...data }));
-  const handleNext = () => setCurrentStep((p) => Math.min(p + 1, STEPS.length));
-  const handlePrevious = () => setCurrentStep((p) => Math.max(p - 1, 1));
+  const handleNext = () => {
+    window?.scrollTo({ top: 0, behavior: "smooth" });
+    setCurrentStep((p) => Math.min(p + 1, STEPS.length));
+  };
+  const handlePrevious = () => {
+    window?.scrollTo({ top: 0, behavior: "smooth" });
+    setCurrentStep((p) => Math.max(p - 1, 1));
+  };
   const handleSubmit = () => {
     createReport(
       {
@@ -940,8 +901,6 @@ export default function AccidentReportPage() {
 
   return (
     <div className="bg-white container py-8 space-y-8 max-w-4xl">
-      <ToastContainer />
-
       <main className="space-y-5">
         {isComplete ? (
           <div className="text-center">
@@ -1015,6 +974,7 @@ export default function AccidentReportPage() {
                   onSubmit={handleSubmit}
                   onPrevious={handlePrevious}
                   toast={toast}
+                  isSubmitting={isCreatingReport}
                 />
               )}
             </div>

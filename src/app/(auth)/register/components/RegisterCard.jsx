@@ -1,16 +1,22 @@
 "use client";
 
+import { useRegisterUser } from "@/hooks/user/useRegisterUser";
+import { useResendOtp } from "@/hooks/user/useResendOtp";
+import { useVerifyPhone } from "@/hooks/user/useVerifyPhone";
 import {
     CheckCircle2,
     Eye,
     EyeOff,
     Lock,
-    Phone,
     Shield,
-    User,
+    User
 } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+// ─── Shared Components ────────────────────────────────────────────────────────
 
 function Input({
   id,
@@ -57,6 +63,8 @@ function Progress({ value = 0 }) {
     </div>
   );
 }
+
+// ─── Step Progress Bar ────────────────────────────────────────────────────────
 
 const STEPS = [
   { id: 1, title: "Account Details", description: "Your info & password" },
@@ -118,12 +126,21 @@ function StepProgressBar({ currentStep }) {
   );
 }
 
-function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
+// ─── Step 1: Account Details ──────────────────────────────────────────────────
+
+function AccountDetailsStep({
+  form,
+  errors,
+  onChange,
+  onSubmit,
+  isSubmitting,
+}) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   return (
     <div className="space-y-5">
+      {/* Full Name */}
       <div className="space-y-2">
         <Label htmlFor="fullName">
           Full Name <span className="text-red-500">*</span>
@@ -144,12 +161,15 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
         )}
       </div>
 
+      {/* Phone Number */}
       <div className="space-y-2">
         <Label htmlFor="phone">
           Phone Number <span className="text-red-500">*</span>
         </Label>
         <div className="relative">
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+            +977
+          </span>
           <Input
             id="phone"
             name="phone"
@@ -158,7 +178,7 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
             value={form.phone}
             onChange={onChange}
             maxLength={10}
-            className={`pl-10 ${errors.phone ? "border-red-500 focus:ring-red-500" : ""}`}
+            className={`pl-14 ${errors.phone ? "border-red-500 focus:ring-red-500" : ""}`}
           />
         </div>
         {errors.phone ? (
@@ -170,6 +190,7 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
         )}
       </div>
 
+      {/* Password */}
       <div className="space-y-2">
         <Label htmlFor="password">
           Password <span className="text-red-500">*</span>
@@ -200,6 +221,7 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
         )}
       </div>
 
+      {/* Confirm Password */}
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">
           Confirm Password <span className="text-red-500">*</span>
@@ -231,9 +253,10 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
       <button
         type="button"
         onClick={onSubmit}
-        className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-sm"
+        disabled={isSubmitting}
+        className="w-full h-12 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm"
       >
-        Send OTP
+        {isSubmitting ? "Sending OTP..." : "Send OTP"}
       </button>
 
       <p className="text-center text-sm text-gray-500">
@@ -249,18 +272,31 @@ function AccountDetailsStep({ form, errors, onChange, onSubmit }) {
   );
 }
 
-function OtpVerifyStep({ phone, onVerify, onBack }) {
+// ─── Step 2: OTP Verification ─────────────────────────────────────────────────
+
+function OtpVerifyStep({
+  phone,
+  fullName,
+  user_id,
+  onVerify,
+  onBack,
+  isVerifying,
+}) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
-  const [resendTimer, setResendTimer] = useState(30);
+  const [resendTimer, setResendTimer] = useState(60);
   const inputRefs = useRef([]);
 
-  useState(() => {
+  const { mutate: resendOtp, isPending: isResending } = useResendOtp();
+
+  // ✅ Fixed: useEffect with proper cleanup, stops when timer hits 0
+  useEffect(() => {
+    if (resendTimer === 0) return;
     const interval = setInterval(() => {
       setResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
     }, 1000);
     return () => clearInterval(interval);
-  });
+  }, [resendTimer]);
 
   const handleOtpChange = (index, value) => {
     if (!/^\d?$/.test(value)) return;
@@ -294,12 +330,31 @@ function OtpVerifyStep({ phone, onVerify, onBack }) {
       setError("Please enter the complete 6-digit OTP.");
       return;
     }
-    // TODO: verify OTP with backend
     onVerify(code);
+  };
+
+  const handleResend = () => {
+    resendOtp(
+      { user_id },
+      {
+        onSuccess: () => {
+          setResendTimer(60);
+          setOtp(["", "", "", "", "", ""]);
+          inputRefs.current[0]?.focus();
+          toast.success("OTP resent successfully! Please check your phone.");
+        },
+        onError: (err) => {
+          toast.error(
+            err?.message || "Failed to resend OTP. Please try again.",
+          );
+        },
+      },
+    );
   };
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="text-center space-y-2">
         <div className="flex justify-center">
           <div className="bg-red-100 rounded-full p-4">
@@ -311,11 +366,12 @@ function OtpVerifyStep({ phone, onVerify, onBack }) {
         </h3>
         <p className="text-sm text-gray-500 max-w-xs mx-auto">
           We sent a 6-digit OTP to{" "}
-          <span className="font-semibold text-gray-800">{phone}</span>. Enter it
-          below to complete registration.
+          <span className="font-semibold text-gray-800">+977 {phone}</span>.
+          Enter it below to complete registration.
         </p>
       </div>
 
+      {/* OTP inputs */}
       <div className="space-y-3">
         <Label className="text-center block">
           Enter OTP <span className="text-red-500">*</span>
@@ -331,34 +387,34 @@ function OtpVerifyStep({ phone, onVerify, onBack }) {
               value={digit}
               onChange={(e) => handleOtpChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
-              className={`w-11 h-12 text-center text-lg font-bold border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${
-                error ? "border-red-500" : "border-gray-300"
-              } ${digit ? "border-red-400 bg-red-50 text-red-700" : ""}`}
+              className={`w-11 h-12 text-center text-lg font-bold border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition
+                ${error ? "border-red-500" : "border-gray-300"}
+                ${digit ? "border-red-400 bg-red-50 text-red-700" : ""}
+              `}
             />
           ))}
         </div>
         {error && <p className="text-xs text-red-500 text-center">{error}</p>}
       </div>
 
+      {/* Resend */}
       <p className="text-center text-sm text-gray-500">
-        Didn't receive it?{" "}
+        Didn&apos;t receive it?{" "}
         {resendTimer > 0 ? (
           <span className="text-gray-400">Resend in {resendTimer}s</span>
         ) : (
           <button
             type="button"
-            onClick={() => {
-              setResendTimer(30);
-              setOtp(["", "", "", "", "", ""]);
-              // TODO: resend OTP
-            }}
-            className="text-red-600 font-medium hover:underline"
+            disabled={isResending}
+            onClick={handleResend}
+            className="text-red-600 disabled:text-red-400 disabled:cursor-not-allowed font-medium hover:underline"
           >
-            Resend OTP
+            {isResending ? "Resending..." : "Resend OTP"}
           </button>
         )}
       </p>
 
+      {/* Registration summary */}
       <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-2">
         <h4 className="text-sm font-semibold text-gray-700">
           Registration Summary
@@ -366,11 +422,11 @@ function OtpVerifyStep({ phone, onVerify, onBack }) {
         <div className="space-y-1.5 text-xs text-gray-600">
           <div className="flex justify-between">
             <span className="text-gray-400">Name</span>
-            <span className="font-medium capitalize"></span>
+            <span className="font-medium capitalize">{fullName}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">Phone</span>
-            <span className="font-medium">{phone}</span>
+            <span className="font-medium">+977 {phone}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-400">OTP Status</span>
@@ -385,35 +441,45 @@ function OtpVerifyStep({ phone, onVerify, onBack }) {
         </div>
       </div>
 
+      {/* Actions */}
       <div className="flex gap-3">
         <button
           type="button"
           onClick={onBack}
-          className="flex-1 h-12 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium rounded-lg transition-all text-sm"
+          disabled={isVerifying}
+          className="flex-1 h-12 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg transition-all text-sm"
         >
           Back
         </button>
         <button
           type="button"
           onClick={handleVerify}
-          className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-sm"
+          disabled={isVerifying}
+          className="flex-1 h-12 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm"
         >
-          Verify & Register
+          {isVerifying ? "Verifying..." : "Verify & Register"}
         </button>
       </div>
     </div>
   );
 }
 
+// ─── Main RegisterCard ────────────────────────────────────────────────────────
+
 const RegisterCard = () => {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
+    user_id: null,
     fullName: "",
     phone: "",
     password: "",
     confirmPassword: "",
   });
   const [errors, setErrors] = useState({});
+
+  const { mutate: registerUser, isPending: isRegistering } = useRegisterUser();
+  const { mutate: verifyPhone, isPending: isVerifying } = useVerifyPhone();
+  const router = useRouter();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -442,21 +508,47 @@ const RegisterCard = () => {
       setErrors(validationErrors);
       return;
     }
-    // TODO: call send OTP API with form.phone
-    console.log("Sending OTP to:", form.phone);
-    setStep(2);
-
-    setTimeout(() => {
-      const firstOtpInput = document.querySelector(
-        'input[type="text"][inputmode="numeric"]',
-      );
-      firstOtpInput?.focus();
-    }, 100);
+    registerUser(
+      {
+        full_name: form.fullName,
+        phone_number: form.phone,
+        password: form.password,
+      },
+      {
+        onSuccess: (data) => {
+          setForm((prev) => ({ ...prev, user_id: data?.data?.user_id }));
+          toast.success("OTP sent successfully! Please check your phone.");
+          setStep(2);
+          setTimeout(() => {
+            const firstOtpInput = document.querySelector(
+              'input[inputmode="numeric"]',
+            );
+            firstOtpInput?.focus();
+          }, 100);
+        },
+        onError: (err) => {
+          toast.error(err?.message || "Failed to send OTP. Please try again.");
+        },
+      },
+    );
   };
 
   const handleVerify = (code) => {
-    // TODO: verify OTP + create account
-    console.log("Verifying OTP:", code, "for", form.phone);
+    verifyPhone(
+      { user_id: form.user_id, verification_code: code },
+      {
+        onSuccess: () => {
+          toast.success("Phone number verified! Your account is ready.");
+          router.push("/login");
+        },
+        onError: (err) => {
+          toast.error(
+            err?.message ||
+              "Failed to verify OTP. Please check the code and try again.",
+          );
+        },
+      },
+    );
   };
 
   return (
@@ -476,13 +568,17 @@ const RegisterCard = () => {
           errors={errors}
           onChange={handleChange}
           onSubmit={handleSendOtp}
+          isSubmitting={isRegistering}
         />
       )}
 
       {step === 2 && (
         <OtpVerifyStep
           phone={form.phone}
+          fullName={form.fullName}
+          user_id={form.user_id}
           onVerify={handleVerify}
+          isVerifying={isVerifying}
           onBack={() => setStep(1)}
         />
       )}

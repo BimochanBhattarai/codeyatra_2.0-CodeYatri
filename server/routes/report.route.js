@@ -43,4 +43,5 @@ report_router.post(
   handle_add_report,
 );
 report_router.get("/all", handle_get_reports);
+
 export default report_router;

@@ -3,10 +3,10 @@ import path from "path";
 import report_model from "../models/report.model.js";
 
 /*
-  * This route allows users to submit a report of an Incident.
-  * The report includes location, estimated number of casualties, incident type, description, and phone number.
-  * Users can also upload photos related to the incident.
-*/
+ * This route allows users to submit a report of an Incident.
+ * The report includes location, estimated number of casualties, incident type, description, and phone number.
+ * Users can also upload photos related to the incident.
+ */
 
 export const handle_add_report = async (req, res) => {
   try {
@@ -79,7 +79,11 @@ export const handle_get_reports = async (req, res) => {
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const reports = await report_model.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const reports = await report_model
+      .find()
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     return res.status(200).json({
       status: "success",

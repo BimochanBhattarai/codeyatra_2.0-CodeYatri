@@ -1,6 +1,8 @@
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import express from "express";
 import report_routes from "./routes/report.route.js";
+import user_routes from "./routes/user.route.js";
 import { connect_to_db } from "./utils/db.js";
 
 dotenv.config();
@@ -14,7 +16,11 @@ app.use(express.static("uploads"));
 
 app.use(express.urlencoded({ limit: "1gb", extended: true }));
 
+app.use(cookieParser());
+
 app.use("/api/report", report_routes);
+
+app.use("/api/user", user_routes);
 
 app.listen(PORT, () => {
   connect_to_db();
