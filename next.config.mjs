@@ -2,7 +2,7 @@
 
 const api_url =
   // process.env.API_URL || "https://toptiergaming-z0f5.onrender.com";
-  process.env.API_URL || "http://localhost:4000";
+  process.env.API_URL || "https://api.bimochanbhattarai.com.np";
 
 const nextConfig = {
   async rewrites() {
@@ -22,7 +22,7 @@ const nextConfig = {
       },
       {
         protocol: "https",
-        hostname: "toptiergaming-z0f5.onrender.com",
+        hostname: "api.bimochanbhattarai.com.np",
         pathname: "**",
       },
       {
