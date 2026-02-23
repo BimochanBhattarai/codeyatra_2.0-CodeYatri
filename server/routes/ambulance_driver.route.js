@@ -2,13 +2,9 @@ import express from "express";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import path from "path";
-import {
-  handle_add_report,
-  handle_get_reports,
-  handle_get_user_reports,
-} from "../controllers/report.controller.js";
+import { handle_submit_ambulance_driver_application } from "../controllers/ambulance_driver.controller.js";
 
-const reportFileUpload = multer({
+const ambulanceDriverPhotoUpload = multer({
   limits: { fileSize: 10000000 },
   fileFilter: (req, file, cb) => {
     if (!file.originalname.match(/\.(png|jpg|jpeg)$/)) {
@@ -17,7 +13,7 @@ const reportFileUpload = multer({
     cb(null, true);
   },
   storage: multer.diskStorage({
-    destination: "./uploads/report/",
+    destination: "./private/uploads/ambulance_driver/",
     filename: function (req, file, cb) {
       const ext = path.extname(file.originalname);
       const randomName = `${nanoid(32)}`;
@@ -26,7 +22,7 @@ const reportFileUpload = multer({
   }),
 });
 
-const reportFileSizeErrorHandler = (err, req, res, next) => {
+const ambulanceDriverPhotoSizeErrorHandler = (err, req, res, next) => {
   if (err) {
     if (err.code === "LIMIT_FILE_SIZE") {
       res.status(400).json({ message: "File size limit of 10MB exceeded !" });
@@ -38,16 +34,18 @@ const reportFileSizeErrorHandler = (err, req, res, next) => {
   }
 };
 
-const report_router = express.Router();
+const ambulance_driver_router = express.Router();
 
-report_router.post(
-  "/add",
-  reportFileUpload.array("photos", 5),
-  reportFileSizeErrorHandler,
-  handle_add_report,
+ambulance_driver_router.post(
+  "/submit_application",
+  ambulanceDriverPhotoUpload.fields([
+    { name: "driver_photo", maxCount: 1 },
+    { name: "license_front", maxCount: 1 },
+    { name: "license_back", maxCount: 1 },
+    { name: "bluebook_photo", maxCount: 1 },
+  ]),
+  ambulanceDriverPhotoSizeErrorHandler,
+  handle_submit_ambulance_driver_application,
 );
-report_router.get("/all", handle_get_reports);
 
-report_router.get("/user", handle_get_user_reports);
-
-export default report_router;
+export default ambulance_driver_router;
