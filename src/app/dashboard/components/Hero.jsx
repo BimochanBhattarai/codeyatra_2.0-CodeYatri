@@ -3,6 +3,7 @@
 import { AuthContext } from "@/contexts/AuthProvider";
 import { useGetActiveReports } from "@/hooks/report/useGetActiveReports";
 import { useGetAllReports } from "@/hooks/report/useGetAllReports";
+import { useGetAmbulanceOfferedReports } from "@/hooks/report/useGetAmbulanceOfferedReports";
 import { useGetUserReports } from "@/hooks/report/useGetUserReports";
 import { useGetUserTypeChangeApplications } from "@/hooks/user/useGetUserTypeChangeApplications";
 import {
@@ -190,6 +191,10 @@ const Hero = () => {
     enabled: isPoliceOrAdmin,
   });
 
+  const { data: ambulanceOfferedReports } = useGetAmbulanceOfferedReports({
+    enabled: user?.user_type === "ambulance_driver",
+  });
+
   if (!user) return null;
 
   return (
@@ -251,6 +256,26 @@ const Hero = () => {
         </div>
       )}
 
+      {user && user.user_type === "ambulance_driver" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              Offered Reports
+            </h3>
+          </div>
+          <div className="flex flex-col gap-3">
+            {ambulanceOfferedReports?.length === 0 ? (
+              <p className="text-sm text-gray-500">
+                No offered reports at the moment.
+              </p>
+            ) : (
+              ambulanceOfferedReports?.map((report) => (
+                <ReportCard key={report._id} report={report} />
+              ))
+            )}
+          </div>
+        </div>
+      )}
       {user &&
         (user.user_type === "police_officer" || user.user_type === "admin") && (
           <div className="space-y-4">

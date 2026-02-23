@@ -1,6 +1,8 @@
 "use client";
 
 import { AuthContext } from "@/contexts/AuthProvider";
+import { useAcceptAmbulanceOffer } from "@/hooks/ambulance_driver/useAcceptAmbulanceOffer";
+import { useRejectAmbulanceOffer } from "@/hooks/ambulance_driver/useRejectAmbulanceOffer";
 import { useCancelReport } from "@/hooks/report/useCancelReport";
 import { useGetReportById } from "@/hooks/report/useGetReportById";
 import { useRejectReport } from "@/hooks/report/useRejectReport";
@@ -196,7 +198,7 @@ function ActionButtons({ report, user, onAction, isActing }) {
     user.user_type === "ambulance_driver" &&
     report.status === "verified" &&
     !report.offered_to_ambulance_drivers?.some(
-      (offer) => offer.driver._id === user._id,
+      (offer) => offer?.driver?._id === user?._id,
     );
 
   if (!showCancel && !showAdminActions && !showAmbulanceActions) return null;
@@ -252,7 +254,7 @@ function ActionButtons({ report, user, onAction, isActing }) {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => onAction("verify")}
+            onClick={() => onAction("accept_ambulance")}
             disabled={isActing}
             className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -265,7 +267,7 @@ function ActionButtons({ report, user, onAction, isActing }) {
           </button>
           <button
             type="button"
-            onClick={() => onAction("reject")}
+            onClick={() => onAction("reject_ambulance")}
             disabled={isActing}
             className="flex-1 h-11 border-2 border-gray-400 text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -328,8 +330,18 @@ export default function TrackReportCard() {
   const { mutate: cancelReport, isPending: isCancelling } = useCancelReport();
   const { mutate: rejectReport, isPending: isRejecting } = useRejectReport();
   const { mutate: verifyReport, isPending: isVerifying } = useVerifyReport();
+  const { mutate: acceptAmbulanceOffer, isPending: isAcceptingAmbulanceOffer } =
+    useAcceptAmbulanceOffer();
 
-  const isActing = isCancelling || isRejecting || isVerifying;
+  const { mutate: rejectAmbulanceOffer, isPending: isRejectingAmbulanceOffer } =
+    useRejectAmbulanceOffer();
+
+  const isActing =
+    isCancelling ||
+    isRejecting ||
+    isVerifying ||
+    isAcceptingAmbulanceOffer ||
+    isRejectingAmbulanceOffer;
 
   const invalidateReport = () => refetch();
 
@@ -367,6 +379,66 @@ export default function TrackReportCard() {
         onError: () =>
           toast.error("Failed to verify report. Please try again."),
       });
+    }
+
+    if (action === "accept_ambulance") {
+      if (!navigator.geolocation) {
+        toast.error("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      toast.info("Waiting for location access…");
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const currentLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+
+          acceptAmbulanceOffer(
+            {
+              report_id: report._id,
+              response_location: JSON.stringify(currentLocation),
+            },
+            {
+              onSuccess: () => {
+                toast.success("Ambulance request accepted.");
+                invalidateReport();
+              },
+              onError: () =>
+                toast.error(
+                  "Failed to accept ambulance request. Please try again.",
+                ),
+            },
+          );
+        },
+        (error) => {
+          const messages = {
+            1: "Location access denied. Please allow location access and try again.",
+            2: "Location unavailable. Please check your GPS and try again.",
+            3: "Location request timed out. Please try again.",
+          };
+          toast.error(messages[error.code] ?? "Failed to get location.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      );
+    }
+
+    if (action === "reject_ambulance") {
+      rejectAmbulanceOffer(
+        { report_id: report._id },
+        {
+          onSuccess: () => {
+            toast.success("Ambulance request rejected.");
+            invalidateReport();
+          },
+          onError: () =>
+            toast.error(
+              "Failed to reject ambulance request. Please try again.",
+            ),
+        },
+      );
     }
   };
 

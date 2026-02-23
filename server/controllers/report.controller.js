@@ -194,14 +194,72 @@ export const handle_get_active_reports = async (req, res) => {
   }
 };
 
+export const handle_get_offered_reports_for_ambulance_driver = async (
+  req,
+  res,
+) => {
+  try {
+    const { token } = req.cookies;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user_id = decoded.user_id;
+
+    const user = await user_model.findById(user_id);
+
+    if (!user || user.user_type !== "ambulance_driver") {
+      return res.status(401).json({
+        status: "error",
+        message: "You are not authorized to access this resource.",
+      });
+    }
+
+    const ambulance_driver = await ambulance_driver_model.findOne({
+      user_id: user._id,
+    });
+
+    if (!ambulance_driver) {
+      return res.status(404).json({
+        status: "error",
+        message: "Ambulance driver profile not found.",
+      });
+    }
+
+    const offered_reports = await report_model
+      .find({
+        status: "verified",
+        "offered_to_ambulance_drivers.driver": ambulance_driver._id,
+        "offered_to_ambulance_drivers.status": "pending",
+      })
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      status: "success",
+      message: "Offered reports retrieved successfully.",
+      data: offered_reports,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: err.message,
+    });
+  }
+};
+
 export const handle_get_report_by_id = async (req, res) => {
   try {
     const { report_id } = req.params;
 
-    const report = await report_model.findOne({ report_id }).populate({
-      path: "timeline.performed_by",
-      select: "full_name phone_number",
-    });
+    const report = await report_model
+      .findOne({ report_id })
+      .populate({
+        path: "timeline.performed_by",
+        select: "full_name phone_number",
+      })
+      .populate({
+        path: "offered_to_ambulance_drivers.driver",
+        select: "full_name phone_number",
+      });
 
     if (!report) {
       return res.status(404).json({
@@ -525,6 +583,12 @@ export const handle_accept_ambulance_offer = async (req, res) => {
 
     report.status = "in_progress";
 
+    report.timeline.push({
+      action: `Ambulance offer accepted`,
+      date: new Date(),
+      performed_by: user._id,
+    });
+
     await report.save();
 
     return res.status(200).json({
@@ -592,6 +656,11 @@ export const handle_reject_ambulance_offer = async (req, res) => {
       )
     ) {
       report.status = "halted";
+      report.timeline.push({
+        action: "All ambulance offers rejected, report halted",
+        date: new Date(),
+        performed_by: null,
+      });
     }
 
     await report.save();

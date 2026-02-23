@@ -8,6 +8,7 @@ import {
   handle_cancel_report,
   handle_get_active_reports,
   handle_get_all_reports,
+  handle_get_offered_reports_for_ambulance_driver,
   handle_get_report_by_id,
   handle_get_user_reports,
   handle_reject_ambulance_offer,
@@ -58,6 +59,11 @@ report_router.get("/user", handle_get_user_reports);
 report_router.get("/all", handle_get_all_reports);
 
 report_router.get("/active", handle_get_active_reports);
+
+report_router.get(
+  "/ambulance_offered_reports",
+  handle_get_offered_reports_for_ambulance_driver,
+);
 
 report_router.get("/track/:report_id", handle_get_report_by_id);
 
