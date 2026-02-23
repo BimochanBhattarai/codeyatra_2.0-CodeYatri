@@ -2,6 +2,7 @@
 
 import { AuthContext } from "@/contexts/AuthProvider";
 import { useGetUserReports } from "@/hooks/report/useGetUserReports";
+import { useGetUserTypeChangeApplications } from "@/hooks/user/useGetUserTypeChangeApplications";
 import {
   AlertCircle,
   Ambulance,
@@ -111,11 +112,10 @@ function ReportCard({ report }) {
 const Hero = () => {
   const { user } = useContext(AuthContext);
 
-  const {
-    data: userReports,
-    isLoading: userReportsLoading,
-    isError: userReportsError,
-  } = useGetUserReports();
+  const { data: userReports } = useGetUserReports();
+
+  const { data: userTypeChangeApplications } =
+    useGetUserTypeChangeApplications();
 
   if (!user) return null;
 
@@ -176,6 +176,53 @@ const Hero = () => {
         </div>
       )}
 
+      {user && user.type_conversion_lock && userTypeChangeApplications && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+              My Applications
+            </h3>
+          </div>
+          <div className="space-y-3">
+            {userTypeChangeApplications.length === 0 ? (
+              <p className="text-sm text-gray-500">No applications found.</p>
+            ) : (
+              userTypeChangeApplications.map((application) => (
+                <div
+                  key={application._id}
+                  className="border border-gray-200 rounded-xl p-4 space-y-3 hover:border-red-200 hover:bg-red-50/30 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-green-100 p-2 rounded-lg shrink-0">
+                        <FileText className="w-4 h-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800 line-clamp-1">
+                          Application to become{" "}
+                          {application.applied_role === "hospital"
+                            ? "Hospital"
+                            : "Ambulance Driver"}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(application.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                    <StatusBadge status={application.status} />
+                  </div>
+
+                  <p className="text-[11px] text-gray-400 border-t border-gray-100 pt-2">
+                    Submitted on{" "}
+                    {new Date(application.createdAt).toLocaleString()}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
@@ -193,6 +240,11 @@ const Hero = () => {
           {userReports?.map((report) => (
             <ReportCard key={report._id} report={report} />
           ))}
+          {userReports?.length === 0 && (
+            <p className="text-sm text-gray-500">
+              You have not submitted any reports yet.
+            </p>
+          )}
         </div>
       </div>
     </div>
