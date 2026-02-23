@@ -6,6 +6,7 @@ import {
   handle_accept_ambulance_offer,
   handle_add_report,
   handle_cancel_report,
+  handle_download_evidence_photo,
   handle_get_active_reports,
   handle_get_all_reports,
   handle_get_offered_reports_for_ambulance_driver,
@@ -81,6 +82,11 @@ report_router.post(
 report_router.post(
   "/reject_ambulance_offer/:report_id",
   handle_reject_ambulance_offer,
+);
+
+report_router.get(
+  "/download_evidence/:report_id/:filename",
+  handle_download_evidence_photo,
 );
 
 export default report_router;

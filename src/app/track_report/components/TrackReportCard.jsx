@@ -7,16 +7,18 @@ import { useCancelReport } from "@/hooks/report/useCancelReport";
 import { useGetReportById } from "@/hooks/report/useGetReportById";
 import { useRejectReport } from "@/hooks/report/useRejectReport";
 import { useVerifyReport } from "@/hooks/report/useVerifyReport";
-// import { useVerifyReport } from "@/hooks/report/useVerifyReport";
 import {
   AlertCircle,
   AlertTriangle,
   Car,
   CheckCircle2,
   Clock,
+  Download,
+  FileImage,
   Flame,
   Hash,
   Loader2,
+  Lock,
   MapPin,
   Phone,
   Search,
@@ -41,6 +43,7 @@ function Input({
   onChange,
   className = "",
   maxLength,
+  onKeyDown,
 }) {
   return (
     <input
@@ -50,6 +53,7 @@ function Input({
       value={value}
       onChange={onChange}
       maxLength={maxLength}
+      onKeyDown={onKeyDown}
       className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${className}`}
     />
   );
@@ -148,6 +152,122 @@ function InfoRow({ icon: Icon, label, value }) {
   );
 }
 
+// ─── Evidence Files ───────────────────────────────────────────────────────────
+
+function EvidenceFiles({ photos = [], user, report_id }) {
+  const isAdmin =
+    user?.user_type === "admin" || user?.user_type === "police_officer";
+
+  const [downloading, setDownloading] = useState(null);
+
+  if (!photos.length) return null;
+
+  const handleDownload = async (filename) => {
+    setDownloading(filename);
+    try {
+      const res = await fetch(
+        `/api/report/download_evidence/${report_id}/${filename}`,
+        {
+          credentials: "include",
+        },
+      );
+
+      if (!res.ok) throw new Error("Unauthorized or file not found.");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Failed to download file. You may not have access.");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+          Evidence Files
+        </p>
+        <span className="text-xs text-gray-400">
+          {photos.length} file{photos.length !== 1 ? "s" : ""}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {photos.map((filepath, i) => {
+          const filename = filepath.split("/").pop();
+          const isThisDownloading = downloading === filename;
+
+          return (
+            <div
+              key={i}
+              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all ${
+                isAdmin
+                  ? "bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
+                  : "bg-gray-50 border-gray-200 opacity-75"
+              }`}
+            >
+              {/* Icon + name */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className={`p-2 rounded-lg shrink-0 ${isAdmin ? "bg-blue-50" : "bg-gray-100"}`}
+                >
+                  <FileImage className="w-4 h-4 text-blue-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">
+                    {isAdmin ? filename : `Evidence ${i + 1}`}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {isAdmin ? "Click to download" : "Restricted access"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action */}
+              {isAdmin ? (
+                <button
+                  type="button"
+                  onClick={() => handleDownload(filename)}
+                  disabled={!!downloading}
+                  className="shrink-0 p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isThisDownloading ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                  ) : (
+                    <Download className="w-4 h-4" />
+                  )}
+                </button>
+              ) : (
+                <div className="shrink-0 p-2 rounded-lg bg-gray-100">
+                  <Lock className="w-4 h-4 text-black" />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Non-admin notice */}
+      {!isAdmin && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
+          <Lock className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
+          <p className="text-xs text-yellow-800">
+            Evidence files are restricted and only accessible to authorized
+            personnel.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Timeline ─────────────────────────────────────────────────────────────────
 
 function Timeline({ events = [] }) {
@@ -193,7 +313,6 @@ function ActionButtons({ report, user, onAction, isActing }) {
 
   const showCancel = isOwner && isPending;
   const showAdminActions = isPoliceAdmin && isPending;
-
   const showAmbulanceActions =
     user.user_type === "ambulance_driver" &&
     report.status === "verified" &&
@@ -205,6 +324,7 @@ function ActionButtons({ report, user, onAction, isActing }) {
 
   return (
     <div className="space-y-3">
+      {/* Admin / Police actions */}
       {showAdminActions && (
         <div className="flex gap-3">
           <button
@@ -235,6 +355,8 @@ function ActionButtons({ report, user, onAction, isActing }) {
           </button>
         </div>
       )}
+
+      {/* Owner cancel */}
       {showCancel && (
         <button
           type="button"
@@ -250,6 +372,8 @@ function ActionButtons({ report, user, onAction, isActing }) {
           Cancel Request
         </button>
       )}
+
+      {/* Ambulance driver actions */}
       {showAmbulanceActions && (
         <div className="flex gap-3">
           <button
@@ -269,7 +393,7 @@ function ActionButtons({ report, user, onAction, isActing }) {
             type="button"
             onClick={() => onAction("reject_ambulance")}
             disabled={isActing}
-            className="flex-1 h-11 border-2 border-gray-400 text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 h-11 border-2 border-gray-400 text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isActing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -291,7 +415,6 @@ export default function TrackReportCard() {
   const query = useSearchParams();
 
   const [reportId, setReportId] = useState("");
-  // searchedId is what actually drives the useQuery key — only set on Search press
   const [searchedId, setSearchedId] = useState("");
 
   const {
@@ -306,33 +429,33 @@ export default function TrackReportCard() {
   // Pre-fill from query param
   useEffect(() => {
     const idFromQuery = query.get("report_id");
+    const autoSearch = query.get("auto") === "true";
     if (idFromQuery) setReportId(idFromQuery);
+    if (autoSearch) {
+      setSearchedId(idFromQuery);
+    }
   }, [query]);
 
-  // ── Search ────────────────────────────────────────────────────────────────
-  const handleSearch = () => {
-    if (!reportId.trim()) return toast.error("Please enter a Report ID.");
-    if (reportId.trim() === searchedId) {
-      // same ID — just refetch without changing the key
-      refetch();
-    } else {
-      // new ID — update key, useQuery fires automatically via enabled:false + refetch below
-      setSearchedId(reportId.trim());
-    }
-  };
-
-  // When searchedId changes refetch is stale, so fire it in an effect
+  // Fire search when searchedId changes
   useEffect(() => {
     if (searchedId) refetch();
   }, [searchedId]);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
+  const handleSearch = () => {
+    if (!reportId.trim()) return toast.error("Please enter a Report ID.");
+    if (reportId.trim() === searchedId) {
+      refetch();
+    } else {
+      setSearchedId(reportId.trim());
+    }
+  };
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
   const { mutate: cancelReport, isPending: isCancelling } = useCancelReport();
   const { mutate: rejectReport, isPending: isRejecting } = useRejectReport();
   const { mutate: verifyReport, isPending: isVerifying } = useVerifyReport();
   const { mutate: acceptAmbulanceOffer, isPending: isAcceptingAmbulanceOffer } =
     useAcceptAmbulanceOffer();
-
   const { mutate: rejectAmbulanceOffer, isPending: isRejectingAmbulanceOffer } =
     useRejectAmbulanceOffer();
 
@@ -345,6 +468,7 @@ export default function TrackReportCard() {
 
   const invalidateReport = () => refetch();
 
+  // ── Action handler ─────────────────────────────────────────────────────────
   const handleAction = (action) => {
     if (!report) return;
 
@@ -446,6 +570,7 @@ export default function TrackReportCard() {
 
   return (
     <div className="bg-white container py-8 space-y-5 max-w-4xl">
+      {/* Header */}
       <div className="text-center space-y-1">
         <h2 className="text-3xl font-bold text-gray-900">Track Your Report</h2>
         <p className="text-gray-500 text-sm">
@@ -461,11 +586,10 @@ export default function TrackReportCard() {
             <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <Input
               id="reportId"
-              placeholder="e.g. RPT-20250223-001"
+              placeholder="e.g. RE-1234567890-123"
               value={reportId}
               onChange={(e) => setReportId(e.target.value)}
               className="pl-10"
-              // also allow pressing Enter to search
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             />
           </div>
@@ -580,8 +704,19 @@ export default function TrackReportCard() {
             </div>
           )}
 
+          {/* Evidence Files */}
+          {report.photos?.length > 0 && (
+            <EvidenceFiles
+              photos={report.photos}
+              user={user}
+              report_id={report._id}
+            />
+          )}
+
+          {/* Timeline */}
           <Timeline events={report.timeline} />
 
+          {/* Not logged in notice */}
           {!user && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
               <Shield className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
@@ -592,6 +727,7 @@ export default function TrackReportCard() {
             </div>
           )}
 
+          {/* Action Buttons */}
           <ActionButtons
             report={report}
             user={user}

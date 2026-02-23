@@ -17,7 +17,7 @@ app.use(admin_router);
 
 app.use(express.json({ limit: "1gb" }));
 
-app.use(express.static("uploads"));
+// app.use(express.static("uploads"));
 
 app.use(express.urlencoded({ limit: "1gb", extended: true }));
 

@@ -112,7 +112,7 @@ function ReportCard({ report }) {
   });
 
   return (
-    <Link href={`/track_report?report_id=${report.report_id}`}>
+    <Link href={`/track_report?report_id=${report.report_id}&auto=true`}>
       <div className="border border-gray-200 rounded-xl p-4 space-y-3 hover:border-red-200 hover:bg-red-50/30 transition-all">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">

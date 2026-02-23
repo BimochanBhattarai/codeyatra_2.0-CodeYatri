@@ -215,7 +215,7 @@ export const handle_login_user = async (req, res) => {
       status: "success",
       message: "Login successful.",
       data: {
-        user_id: user._id,
+        _id: user._id,
         full_name: user.full_name,
         phone_number: user.phone_number,
         user_type: user.user_type,
@@ -277,7 +277,7 @@ export const handle_verify_user_token = async (req, res) => {
       status: "success",
       message: "Token is valid.",
       data: {
-        user_id: user._id,
+        _id: user._id,
         full_name: user.full_name,
         phone_number: user.phone_number,
         user_type: user.user_type,

@@ -678,3 +678,60 @@ export const handle_reject_ambulance_offer = async (req, res) => {
     });
   }
 };
+
+export const handle_download_evidence_photo = async (req, res) => {
+  try {
+    const { token } = req.cookies;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user_id = decoded.user_id;
+
+    const user = await user_model.findById(user_id);
+
+    if (!user) {
+      return res.status(401).json({
+        status: "error",
+        message: "You are not authorized to perform this action.",
+      });
+    }
+
+    if (user.user_type !== "admin" && user.user_type !== "police_officer") {
+      return res.status(403).json({
+        status: "error",
+        message: "Only admin and police officers can download evidence photos.",
+      });
+    }
+
+    const { report_id, filename } = req.params;
+
+    const report = await report_model.findOne({ _id: report_id });
+
+    if (!report) {
+      return res.status(404).json({
+        status: "error",
+        message: "Report not found.",
+      });
+    }
+
+    const photoPath = path.join(
+      process.cwd(),
+      "uploads/report",
+      report._id.toString(),
+      filename,
+    );
+
+    if (!fs.existsSync(photoPath)) {
+      return res.status(404).json({
+        status: "error",
+        message: "Photo not found.",
+      });
+    }
+
+    res.download(photoPath, filename);
+  } catch (err) {
+    return res.status(500).json({
+      status: "error",
+      message: "Internal server error.",
+      error: err.message,
+    });
+  }
+};
