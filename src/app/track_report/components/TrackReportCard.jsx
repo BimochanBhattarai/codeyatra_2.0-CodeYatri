@@ -33,6 +33,36 @@ import { useSearchParams } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+// ─── ETA Helpers ──────────────────────────────────────────────────────────────
+
+function haversineDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function calcETA(driverLoc, reportLoc, acceptedAt) {
+  const AVG_SPEED_KMH = 40;
+  const distKm = haversineDistanceKm(
+    driverLoc.latitude,
+    driverLoc.longitude,
+    reportLoc.latitude,
+    reportLoc.longitude,
+  );
+  const totalMins = (distKm / AVG_SPEED_KMH) * 60;
+  const elapsedMins = (Date.now() - new Date(acceptedAt).getTime()) / 60000;
+  const remainingMins = Math.max(0, totalMins - elapsedMins);
+  return {
+    distKm: distKm.toFixed(2),
+    remainingMins: Math.round(remainingMins),
+  };
+}
+
 // ─── Shared Components ────────────────────────────────────────────────────────
 
 function Input({
@@ -300,6 +330,75 @@ function Timeline({ events = [] }) {
   );
 }
 
+// ─── Ambulance ETA Card ───────────────────────────────────────────────────────
+
+function AmbulanceETACard({ report }) {
+  const accepted = report.offered_to_ambulance_drivers?.find(
+    (o) => o.status === "accepted",
+  );
+
+  if (!accepted || !report.location?.latitude) return null;
+
+  const { distKm, remainingMins } = calcETA(
+    accepted.response_location,
+    report.location,
+    accepted.response_date,
+  );
+
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm space-y-3">
+      <h4 className="text-sm font-semibold text-orange-700 flex items-center gap-2">
+        <Siren className="w-4 h-4" /> Ambulance Dispatched
+      </h4>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* Driver name */}
+        <div className="flex items-start gap-3">
+          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
+            <User className="w-4 h-4 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Driver</p>
+            <p className="text-sm font-medium text-gray-800">
+              {accepted.driver?.full_name ?? "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* Driver phone */}
+        <div className="flex items-start gap-3">
+          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
+            <Phone className="w-4 h-4 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Contact</p>
+            <p className="text-sm font-medium text-gray-800">
+              {accepted.driver?.phone_number ?? "—"}
+            </p>
+          </div>
+        </div>
+
+        {/* ETA */}
+        <div className="flex items-start gap-3">
+          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
+            <Clock className="w-4 h-4 text-orange-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-400">Est. Arrival</p>
+            <p className="text-sm font-semibold text-orange-700">
+              {remainingMins <= 0
+                ? "Arrived / Very close"
+                : `~${remainingMins} min${remainingMins !== 1 ? "s" : ""} away`}
+            </p>
+            <p className="text-[11px] text-gray-400">
+              {distKm} km straight-line
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Action Buttons ───────────────────────────────────────────────────────────
 
 function ActionButtons({ report, user, onAction, isActing }) {
@@ -506,46 +605,66 @@ export default function TrackReportCard() {
     }
 
     if (action === "accept_ambulance") {
-      if (!navigator.geolocation) {
-        toast.error("Geolocation is not supported by your browser.");
-        return;
-      }
+      // if (!navigator.geolocation) {
+      //   toast.error("Geolocation is not supported by your browser.");
+      //   return;
+      // }
 
-      toast.info("Waiting for location access…");
+      // toast.info("Waiting for location access…");
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const currentLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
+      // navigator.geolocation.getCurrentPosition(
+      //   (position) => {
+      //     const currentLocation = {
+      //       latitude: position.coords.latitude,
+      //       longitude: position.coords.longitude,
+      //     };
 
-          acceptAmbulanceOffer(
-            {
-              report_id: report._id,
-              response_location: JSON.stringify(currentLocation),
-            },
-            {
-              onSuccess: () => {
-                toast.success("Ambulance request accepted.");
-                invalidateReport();
-              },
-              onError: () =>
-                toast.error(
-                  "Failed to accept ambulance request. Please try again.",
-                ),
-            },
-          );
+      //     acceptAmbulanceOffer(
+      //       {
+      //         report_id: report._id,
+      //         response_location: JSON.stringify(currentLocation),
+      //       },
+      //       {
+      //         onSuccess: () => {
+      //           toast.success("Ambulance request accepted.");
+      //           invalidateReport();
+      //         },
+      //         onError: () =>
+      //           toast.error(
+      //             "Failed to accept ambulance request. Please try again.",
+      //           ),
+      //       },
+      //     );
+      //   },
+      //   (error) => {
+      //     const messages = {
+      //       1: "Location access denied. Please allow location access and try again.",
+      //       2: "Location unavailable. Please check your GPS and try again.",
+      //       3: "Location request timed out. Please try again.",
+      //     };
+      //     toast.error(messages[error.code] ?? "Failed to get location.");
+      //   },
+      //   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+      // );
+
+      acceptAmbulanceOffer(
+        {
+          report_id: report._id,
+          response_location: JSON.stringify({
+            latitude: "27.67689",
+            longitude: "85.33315",
+          }),
         },
-        (error) => {
-          const messages = {
-            1: "Location access denied. Please allow location access and try again.",
-            2: "Location unavailable. Please check your GPS and try again.",
-            3: "Location request timed out. Please try again.",
-          };
-          toast.error(messages[error.code] ?? "Failed to get location.");
+        {
+          onSuccess: () => {
+            toast.success("Ambulance request accepted.");
+            invalidateReport();
+          },
+          onError: () =>
+            toast.error(
+              "Failed to accept ambulance request. Please try again.",
+            ),
         },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
       );
     }
 
@@ -712,6 +831,9 @@ export default function TrackReportCard() {
               report_id={report._id}
             />
           )}
+
+          {/* Ambulance ETA — visible when an offer has been accepted */}
+          <AmbulanceETACard report={report} />
 
           {/* Timeline */}
           <Timeline events={report.timeline} />
