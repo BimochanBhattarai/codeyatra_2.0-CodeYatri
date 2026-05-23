@@ -2,7 +2,9 @@
 
 import { AuthContext } from "@/contexts/AuthProvider";
 import { useAcceptAmbulanceOffer } from "@/hooks/ambulance_driver/useAcceptAmbulanceOffer";
+import { usePickedUpPatient } from "@/hooks/ambulance_driver/usePickedUpPatient";
 import { useRejectAmbulanceOffer } from "@/hooks/ambulance_driver/useRejectAmbulanceOffer";
+import { useResolveAmbulanceReport } from "@/hooks/ambulance_driver/useResolveAmbulanceReport";
 import { useCancelReport } from "@/hooks/report/useCancelReport";
 import { useGetReportById } from "@/hooks/report/useGetReportById";
 import { useRejectReport } from "@/hooks/report/useRejectReport";
@@ -10,6 +12,7 @@ import { useVerifyReport } from "@/hooks/report/useVerifyReport";
 import {
   AlertCircle,
   AlertTriangle,
+  Ambulance,
   Car,
   CheckCircle2,
   Clock,
@@ -30,10 +33,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-
-// ─── ETA Helpers ──────────────────────────────────────────────────────────────
 
 function haversineDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -49,10 +50,10 @@ function haversineDistanceKm(lat1, lon1, lat2, lon2) {
 function calcETA(driverLoc, reportLoc, acceptedAt) {
   const AVG_SPEED_KMH = 40;
   const distKm = haversineDistanceKm(
-    driverLoc.latitude,
-    driverLoc.longitude,
-    reportLoc.latitude,
-    reportLoc.longitude,
+    Number(driverLoc.latitude),
+    Number(driverLoc.longitude),
+    Number(reportLoc.latitude),
+    Number(reportLoc.longitude),
   );
   const totalMins = (distKm / AVG_SPEED_KMH) * 60;
   const elapsedMins = (Date.now() - new Date(acceptedAt).getTime()) / 60000;
@@ -62,8 +63,6 @@ function calcETA(driverLoc, reportLoc, acceptedAt) {
     remainingMins: Math.round(remainingMins),
   };
 }
-
-// ─── Shared Components ────────────────────────────────────────────────────────
 
 function Input({
   id,
@@ -84,7 +83,7 @@ function Input({
       onChange={onChange}
       maxLength={maxLength}
       onKeyDown={onKeyDown}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${className}`}
+      className={`w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg sm:py-2 ${className}`}
     />
   );
 }
@@ -100,14 +99,24 @@ function Label({ htmlFor, children, className = "" }) {
   );
 }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
 const STATUS_CONFIG = {
   pending: {
     label: "Pending",
     bg: "bg-yellow-100",
     text: "text-yellow-700",
     icon: Clock,
+  },
+  halted: {
+    label: "Halted",
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    icon: X,
+  },
+  picked_up: {
+    label: "Picked Up",
+    bg: "bg-blue-100",
+    text: "text-blue-700",
+    icon: Ambulance,
   },
   verified: {
     label: "Verified",
@@ -144,17 +153,16 @@ const STATUS_CONFIG = {
 function StatusBadge({ status }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   const Icon = cfg.icon;
+
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.text}`}
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${cfg.bg} ${cfg.text}`}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <Icon className="h-3.5 w-3.5" />
       {cfg.label}
     </span>
   );
 }
-
-// ─── Incident Icons ───────────────────────────────────────────────────────────
 
 const INCIDENT_ICONS = {
   accident: Car,
@@ -164,25 +172,21 @@ const INCIDENT_ICONS = {
   other: AlertCircle,
 };
 
-// ─── Info Row ─────────────────────────────────────────────────────────────────
-
 function InfoRow({ icon: Icon, label, value }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="bg-red-50 p-2 rounded-lg shrink-0">
-        <Icon className="w-4 h-4 text-red-500" />
+    <div className="flex items-start gap-3 rounded-2xl border border-gray-100 bg-white p-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0">
+      <div className="shrink-0 rounded-xl bg-red-50 p-2 sm:rounded-lg">
+        <Icon className="h-4 w-4 text-red-500" />
       </div>
-      <div>
-        <p className="text-xs text-gray-400 capitalize">{label}</p>
-        <p className="text-sm font-medium text-gray-800 capitalize">
+      <div className="min-w-0">
+        <p className="text-xs capitalize text-gray-400">{label}</p>
+        <p className="break-words text-sm font-medium capitalize text-gray-800">
           {value || "—"}
         </p>
       </div>
     </div>
   );
 }
-
-// ─── Evidence Files ───────────────────────────────────────────────────────────
 
 function EvidenceFiles({ photos = [], user, report_id }) {
   const isAdmin =
@@ -219,9 +223,9 @@ function EvidenceFiles({ photos = [], user, report_id }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
           Evidence Files
         </p>
         <span className="text-xs text-gray-400">
@@ -229,7 +233,7 @@ function EvidenceFiles({ photos = [], user, report_id }) {
         </span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
         {photos.map((filepath, i) => {
           const filename = filepath.split("/").pop();
           const isThisDownloading = downloading === filename;
@@ -237,21 +241,22 @@ function EvidenceFiles({ photos = [], user, report_id }) {
           return (
             <div
               key={i}
-              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 transition-all ${
+              className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 transition-all sm:rounded-xl ${
                 isAdmin
-                  ? "bg-white border-gray-200 hover:border-blue-300 hover:bg-blue-50/30"
-                  : "bg-gray-50 border-gray-200 opacity-75"
+                  ? "border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/30"
+                  : "border-gray-200 bg-gray-50 opacity-75"
               }`}
             >
-              {/* Icon + name */}
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="min-w-0 flex items-center gap-3">
                 <div
-                  className={`p-2 rounded-lg shrink-0 ${isAdmin ? "bg-blue-50" : "bg-gray-100"}`}
+                  className={`shrink-0 rounded-xl p-2 ${
+                    isAdmin ? "bg-blue-50" : "bg-gray-100"
+                  }`}
                 >
-                  <FileImage className="w-4 h-4 text-blue-500" />
+                  <FileImage className="h-4 w-4 text-blue-500" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-800 truncate">
+                  <p className="truncate text-sm font-medium text-gray-800">
                     {isAdmin ? filename : `Evidence ${i + 1}`}
                   </p>
                   <p className="text-xs text-gray-400">
@@ -260,23 +265,22 @@ function EvidenceFiles({ photos = [], user, report_id }) {
                 </div>
               </div>
 
-              {/* Action */}
               {isAdmin ? (
                 <button
                   type="button"
                   onClick={() => handleDownload(filename)}
                   disabled={!!downloading}
-                  className="shrink-0 p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-400 transition-all hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isThisDownloading ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                    <Loader2 className="h-4 w-4 animate-spin text-red-500" />
                   ) : (
-                    <Download className="w-4 h-4" />
+                    <Download className="h-4 w-4" />
                   )}
                 </button>
               ) : (
-                <div className="shrink-0 p-2 rounded-lg bg-gray-100">
-                  <Lock className="w-4 h-4 text-black" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100">
+                  <Lock className="h-4 w-4 text-black" />
                 </div>
               )}
             </div>
@@ -284,10 +288,9 @@ function EvidenceFiles({ photos = [], user, report_id }) {
         })}
       </div>
 
-      {/* Non-admin notice */}
       {!isAdmin && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 flex items-start gap-2">
-          <Lock className="w-4 h-4 text-yellow-600 shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 rounded-xl border border-yellow-200 bg-yellow-50 p-3">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
           <p className="text-xs text-yellow-800">
             Evidence files are restricted and only accessible to authorized
             personnel.
@@ -298,25 +301,25 @@ function EvidenceFiles({ photos = [], user, report_id }) {
   );
 }
 
-// ─── Timeline ─────────────────────────────────────────────────────────────────
-
 function Timeline({ events = [] }) {
   if (!events.length) return null;
+
   return (
-    <div className="space-y-3">
-      <h4 className="text-sm font-semibold text-red-600 flex items-center gap-2">
-        <Clock className="w-4 h-4" /> Timeline
+    <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-red-600">
+        <Clock className="h-4 w-4" /> Timeline
       </h4>
-      <div className="relative pl-5 space-y-4">
-        <div className="absolute left-2.75 top-1.5 bottom-1 w-px bg-gray-200" />
+
+      <div className="relative space-y-4 pl-5">
+        <div className="absolute bottom-1 left-[10px] top-1.5 w-px bg-gray-200" />
         {events.map((event, i) => (
           <div key={i} className="relative flex items-start gap-3">
-            <div className="absolute -left-3.25 top-1.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white ring-1 ring-red-200 shrink-0" />
-            <div>
+            <div className="absolute left-[-12px] top-1.5 h-2.5 w-2.5 shrink-0 rounded-full border-2 border-white bg-red-500 ring-1 ring-red-200" />
+            <div className="rounded-xl bg-gray-50 px-3 py-2 sm:bg-transparent sm:px-0 sm:py-0">
               <p className="text-xs font-medium text-gray-700">
                 {event.action} by {event.performed_by?.full_name ?? "system"}.
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">
+              <p className="mt-0.5 text-[11px] text-gray-400">
                 {new Date(event.date).toLocaleString("en-NP", {
                   dateStyle: "medium",
                   timeStyle: "short",
@@ -330,14 +333,21 @@ function Timeline({ events = [] }) {
   );
 }
 
-// ─── Ambulance ETA Card ───────────────────────────────────────────────────────
-
 function AmbulanceETACard({ report }) {
   const accepted = report.offered_to_ambulance_drivers?.find(
     (o) => o.status === "accepted",
   );
 
-  if (!accepted || !report.location?.latitude) return null;
+  if (
+    !accepted ||
+    !report.location?.latitude ||
+    !report.location?.longitude ||
+    !accepted.response_location?.latitude ||
+    !accepted.response_location?.longitude ||
+    !accepted.response_date
+  ) {
+    return null;
+  }
 
   const { distKm, remainingMins } = calcETA(
     accepted.response_location,
@@ -346,15 +356,15 @@ function AmbulanceETACard({ report }) {
   );
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm space-y-3">
-      <h4 className="text-sm font-semibold text-orange-700 flex items-center gap-2">
-        <Siren className="w-4 h-4" /> Ambulance Dispatched
+    <div className="space-y-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:rounded-xl">
+      <h4 className="flex items-center gap-2 text-sm font-semibold text-orange-700">
+        <Siren className="h-4 w-4" /> Ambulance Dispatched
       </h4>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {/* Driver name */}
-        <div className="flex items-start gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
-            <User className="w-4 h-4 text-orange-600" />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="flex items-start gap-3 rounded-2xl bg-orange-50/50 p-3 sm:rounded-xl sm:bg-transparent sm:p-0">
+          <div className="shrink-0 rounded-xl bg-orange-100 p-2">
+            <User className="h-4 w-4 text-orange-600" />
           </div>
           <div>
             <p className="text-xs text-gray-400">Driver</p>
@@ -364,10 +374,9 @@ function AmbulanceETACard({ report }) {
           </div>
         </div>
 
-        {/* Driver phone */}
-        <div className="flex items-start gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
-            <Phone className="w-4 h-4 text-orange-600" />
+        <div className="flex items-start gap-3 rounded-2xl bg-orange-50/50 p-3 sm:rounded-xl sm:bg-transparent sm:p-0">
+          <div className="shrink-0 rounded-xl bg-orange-100 p-2">
+            <Phone className="h-4 w-4 text-orange-600" />
           </div>
           <div>
             <p className="text-xs text-gray-400">Contact</p>
@@ -377,10 +386,9 @@ function AmbulanceETACard({ report }) {
           </div>
         </div>
 
-        {/* ETA */}
-        <div className="flex items-start gap-3">
-          <div className="bg-orange-100 p-2 rounded-lg shrink-0">
-            <Clock className="w-4 h-4 text-orange-600" />
+        <div className="flex items-start gap-3 rounded-2xl bg-orange-50/50 p-3 sm:rounded-xl sm:bg-transparent sm:p-0">
+          <div className="shrink-0 rounded-xl bg-orange-100 p-2">
+            <Clock className="h-4 w-4 text-orange-600" />
           </div>
           <div>
             <p className="text-xs text-gray-400">Est. Arrival</p>
@@ -399,115 +407,208 @@ function AmbulanceETACard({ report }) {
   );
 }
 
-// ─── Action Buttons ───────────────────────────────────────────────────────────
+function normalizePhone(phone) {
+  if (!phone) return "";
+  return String(phone).replace(/\D/g, "");
+}
+
+function getOfferDriverMeta(offer) {
+  const driverObj =
+    typeof offer?.driver === "object" && offer?.driver !== null
+      ? offer.driver
+      : null;
+
+  return {
+    ambulanceDriverId: driverObj?._id?.toString?.() ?? null,
+    ambulanceDriverPhone: normalizePhone(driverObj?.phone_number),
+    ambulanceDriverUserId: driverObj?.user_id?.toString?.() ?? null,
+  };
+}
 
 function ActionButtons({ report, user, onAction, isActing }) {
   if (!user || !report) return null;
 
+  const reporterUserId =
+    typeof report.reporter_user === "object"
+      ? report.reporter_user?._id
+      : report.reporter_user;
+
   const isOwner =
-    user._id === report.reporter_user?._id || user._id === report.reporter_user;
+    user?._id?.toString() === reporterUserId?.toString() ||
+    normalizePhone(user?.phone_number) === normalizePhone(report?.phone_number);
+
   const isPoliceAdmin =
-    user.user_type === "police_officer" || user.user_type === "admin";
+    user?.user_type === "police_officer" || user?.user_type === "admin";
+
+  const isAmbulanceDriver = user?.user_type === "ambulance_driver";
   const isPending = report.status === "pending";
+
+  const normalizedUserPhone = normalizePhone(user?.phone_number);
+  const currentUserId = user?._id?.toString?.() ?? null;
+
+  const currentAmbulanceOffer = isAmbulanceDriver
+    ? (report?.offered_to_ambulance_drivers?.find((offer) => {
+        const meta = getOfferDriverMeta(offer);
+
+        const matchedByPhone =
+          !!normalizedUserPhone &&
+          !!meta.ambulanceDriverPhone &&
+          normalizedUserPhone === meta.ambulanceDriverPhone;
+
+        const matchedByUserId =
+          !!currentUserId &&
+          !!meta.ambulanceDriverUserId &&
+          currentUserId === meta.ambulanceDriverUserId;
+
+        return matchedByPhone || matchedByUserId;
+      }) ?? null)
+    : null;
+
+  const isAssignedAcceptedDriver =
+    isAmbulanceDriver && currentAmbulanceOffer?.status === "accepted";
 
   const showCancel = isOwner && isPending;
   const showAdminActions = isPoliceAdmin && isPending;
-  const showAmbulanceActions =
-    user.user_type === "ambulance_driver" &&
-    report.status === "verified" &&
-    !report.offered_to_ambulance_drivers?.some(
-      (offer) => offer?.driver?._id === user?._id,
-    );
 
-  if (!showCancel && !showAdminActions && !showAmbulanceActions) return null;
+  const showAmbulanceOfferActions =
+    isAmbulanceDriver &&
+    report?.status === "verified" &&
+    currentAmbulanceOffer?.status === "pending";
+
+  const showPickedUpAction =
+    isAssignedAcceptedDriver && report?.status === "in_progress";
+
+  const showResolvedAction =
+    isAssignedAcceptedDriver && report?.status === "picked_up";
+
+  if (
+    !showCancel &&
+    !showAdminActions &&
+    !showAmbulanceOfferActions &&
+    !showPickedUpAction &&
+    !showResolvedAction
+  ) {
+    return null;
+  }
 
   return (
-    <div className="space-y-3">
-      {/* Admin / Police actions */}
-      {showAdminActions && (
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => onAction("verify")}
-            disabled={isActing}
-            className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isActing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-4 h-4" />
-            )}
-            Verify
-          </button>
-          <button
-            type="button"
-            onClick={() => onAction("reject")}
-            disabled={isActing}
-            className="flex-1 h-11 border-2 border-red-500 text-red-600 hover:bg-red-600 hover:text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isActing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <XCircle className="w-4 h-4" />
-            )}
-            Reject
-          </button>
-        </div>
-      )}
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div className="space-y-3">
+        {showAdminActions && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => onAction("verify")}
+              disabled={isActing}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-medium text-white transition-all hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
+            >
+              {isActing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Verify
+            </button>
 
-      {/* Owner cancel */}
-      {showCancel && (
-        <button
-          type="button"
-          onClick={() => onAction("cancel")}
-          disabled={isActing}
-          className="w-full h-11 border-2 border-red-600 bg-red-600 hover:bg-red-700 hover:border-red-700 text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isActing ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <X className="w-4 h-4" />
-          )}
-          Cancel Request
-        </button>
-      )}
+            <button
+              type="button"
+              onClick={() => onAction("reject")}
+              disabled={isActing}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-red-500 text-sm font-medium text-red-600 transition-all hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
+            >
+              {isActing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              Reject
+            </button>
+          </div>
+        )}
 
-      {/* Ambulance driver actions */}
-      {showAmbulanceActions && (
-        <div className="flex gap-3">
+        {showCancel && (
           <button
             type="button"
-            onClick={() => onAction("accept_ambulance")}
+            onClick={() => onAction("cancel")}
             disabled={isActing}
-            className="flex-1 h-11 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border-2 border-red-600 bg-red-600 text-sm font-medium text-white transition-all hover:border-red-700 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
           >
             {isActing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <CheckCircle2 className="w-4 h-4" />
+              <X className="h-4 w-4" />
             )}
-            Accept Request
+            Cancel Request
           </button>
+        )}
+
+        {showAmbulanceOfferActions && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => onAction("accept_ambulance")}
+              disabled={isActing}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-medium text-white transition-all hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
+            >
+              {isActing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
+              Accept Request
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onAction("reject_ambulance")}
+              disabled={isActing}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-gray-400 text-sm font-medium text-gray-600 transition-all hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
+            >
+              {isActing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              Reject Request
+            </button>
+          </div>
+        )}
+
+        {showPickedUpAction && (
           <button
             type="button"
-            onClick={() => onAction("reject_ambulance")}
+            onClick={() => onAction("picked_up")}
             disabled={isActing}
-            className="flex-1 h-11 border-2 border-gray-400 text-gray-600 hover:bg-gray-100 font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-600 text-sm font-medium text-white transition-all hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
           >
             {isActing ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <XCircle className="w-4 h-4" />
+              <Ambulance className="h-4 w-4" />
             )}
-            Reject Request
+            Mark as Picked Up
           </button>
-        </div>
-      )}
+        )}
+
+        {showResolvedAction && (
+          <button
+            type="button"
+            onClick={() => onAction("resolve")}
+            disabled={isActing}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-green-600 text-sm font-medium text-white transition-all hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:rounded-lg"
+          >
+            {isActing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Mark as Resolved
+          </button>
+        )}
+      </div>
     </div>
   );
 }
-
-// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function TrackReportCard() {
   const { user } = useContext(AuthContext);
@@ -525,20 +626,18 @@ export default function TrackReportCard() {
 
   const notFound = isError && !!searchedId;
 
-  // Pre-fill from query param
   useEffect(() => {
     const idFromQuery = query.get("report_id");
     const autoSearch = query.get("auto") === "true";
     if (idFromQuery) setReportId(idFromQuery);
-    if (autoSearch) {
+    if (autoSearch && idFromQuery) {
       setSearchedId(idFromQuery);
     }
   }, [query]);
 
-  // Fire search when searchedId changes
   useEffect(() => {
     if (searchedId) refetch();
-  }, [searchedId]);
+  }, [searchedId, refetch]);
 
   const handleSearch = () => {
     if (!reportId.trim()) return toast.error("Please enter a Report ID.");
@@ -549,7 +648,6 @@ export default function TrackReportCard() {
     }
   };
 
-  // ── Mutations ──────────────────────────────────────────────────────────────
   const { mutate: cancelReport, isPending: isCancelling } = useCancelReport();
   const { mutate: rejectReport, isPending: isRejecting } = useRejectReport();
   const { mutate: verifyReport, isPending: isVerifying } = useVerifyReport();
@@ -557,17 +655,22 @@ export default function TrackReportCard() {
     useAcceptAmbulanceOffer();
   const { mutate: rejectAmbulanceOffer, isPending: isRejectingAmbulanceOffer } =
     useRejectAmbulanceOffer();
+  const { mutate: pickedUpPatient, isPending: isPickingUpPatient } =
+    usePickedUpPatient();
+  const { mutate: resolveAmbulanceReport, isPending: isResolvingReport } =
+    useResolveAmbulanceReport();
 
   const isActing =
     isCancelling ||
     isRejecting ||
     isVerifying ||
     isAcceptingAmbulanceOffer ||
-    isRejectingAmbulanceOffer;
+    isRejectingAmbulanceOffer ||
+    isPickingUpPatient ||
+    isResolvingReport;
 
   const invalidateReport = () => refetch();
 
-  // ── Action handler ─────────────────────────────────────────────────────────
   const handleAction = (action) => {
     if (!report) return;
 
@@ -605,54 +708,12 @@ export default function TrackReportCard() {
     }
 
     if (action === "accept_ambulance") {
-      // if (!navigator.geolocation) {
-      //   toast.error("Geolocation is not supported by your browser.");
-      //   return;
-      // }
-
-      // toast.info("Waiting for location access…");
-
-      // navigator.geolocation.getCurrentPosition(
-      //   (position) => {
-      //     const currentLocation = {
-      //       latitude: position.coords.latitude,
-      //       longitude: position.coords.longitude,
-      //     };
-
-      //     acceptAmbulanceOffer(
-      //       {
-      //         report_id: report._id,
-      //         response_location: JSON.stringify(currentLocation),
-      //       },
-      //       {
-      //         onSuccess: () => {
-      //           toast.success("Ambulance request accepted.");
-      //           invalidateReport();
-      //         },
-      //         onError: () =>
-      //           toast.error(
-      //             "Failed to accept ambulance request. Please try again.",
-      //           ),
-      //       },
-      //     );
-      //   },
-      //   (error) => {
-      //     const messages = {
-      //       1: "Location access denied. Please allow location access and try again.",
-      //       2: "Location unavailable. Please check your GPS and try again.",
-      //       3: "Location request timed out. Please try again.",
-      //     };
-      //     toast.error(messages[error.code] ?? "Failed to get location.");
-      //   },
-      //   { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
-      // );
-
       acceptAmbulanceOffer(
         {
           report_id: report._id,
           response_location: JSON.stringify({
-            latitude: "27.67689",
-            longitude: "85.33315",
+            latitude: 27.67689,
+            longitude: 85.33315,
           }),
         },
         {
@@ -683,181 +744,223 @@ export default function TrackReportCard() {
         },
       );
     }
+
+    if (action === "picked_up") {
+      pickedUpPatient(
+        { report_id: report._id },
+        {
+          onSuccess: () => {
+            toast.success("Patient marked as picked up.");
+            invalidateReport();
+          },
+          onError: () => toast.error("Failed to mark patient as picked up."),
+        },
+      );
+    }
+
+    if (action === "resolve") {
+      resolveAmbulanceReport(
+        { report_id: report._id },
+        {
+          onSuccess: () => {
+            toast.success("Report marked as resolved.");
+            invalidateReport();
+          },
+          onError: () => toast.error("Failed to mark report as resolved."),
+        },
+      );
+    }
   };
 
-  const IncidentIcon = INCIDENT_ICONS[report?.incident_type] ?? AlertCircle;
+  const IncidentIcon = useMemo(
+    () => INCIDENT_ICONS[report?.incident_type] ?? AlertCircle,
+    [report?.incident_type],
+  );
 
   return (
-    <div className="bg-white container py-8 space-y-5 max-w-4xl">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <h2 className="text-3xl font-bold text-gray-900">Track Your Report</h2>
-        <p className="text-gray-500 text-sm">
-          Enter your Report ID to see the current status and details.
-        </p>
-      </div>
-
-      {/* Search Bar */}
-      <div className="space-y-2">
-        <Label htmlFor="reportId">Report ID</Label>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <Input
-              id="reportId"
-              placeholder="e.g. RE-1234567890-123"
-              value={reportId}
-              onChange={(e) => setReportId(e.target.value)}
-              className="pl-10"
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            />
+    <div className="container max-w-4xl bg-white px-4 py-4 pb-32 sm:px-0 sm:py-8 sm:pb-8">
+      <div className="space-y-5">
+        <div className="rounded-2xl bg-white p-5 text-center shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="space-y-1">
+            <h2 className="text-3xl font-bold text-gray-900">
+              Track Your Report
+            </h2>
+            <p className="text-sm text-gray-500">
+              Enter your Report ID to see the current status and details.
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="h-9.5 px-5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm flex items-center gap-2 shrink-0"
-          >
-            {isSearching ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Search className="w-4 h-4" />
-            )}
-            {isSearching ? "Searching…" : "Search"}
-          </button>
         </div>
-      </div>
 
-      {/* Not Found */}
-      {notFound && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center space-y-2">
-          <XCircle className="w-10 h-10 text-red-400 mx-auto" />
-          <p className="text-sm font-semibold text-red-700">Report not found</p>
-          <p className="text-xs text-gray-500">
-            Double check the Report ID and try again.
-          </p>
-        </div>
-      )}
+        <div className="rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+          <div className="space-y-2">
+            <Label htmlFor="reportId">Report ID</Label>
 
-      {/* Report Card */}
-      {report && (
-        <div className="space-y-5">
-          {/* ID + Status strip */}
-          <div className="flex items-center justify-between flex-wrap gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2">
-              <IncidentIcon className="w-5 h-5 text-red-500" />
-              <span className="font-mono text-sm font-bold text-gray-800">
-                {report.report_id}
-              </span>
-            </div>
-            <StatusBadge status={report.status} />
-          </div>
-
-          {/* Info Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
-            <InfoRow
-              icon={AlertCircle}
-              label="Incident Type"
-              value={report.incident_type?.replace(/_/g, " ")}
-            />
-            <InfoRow
-              icon={Siren}
-              label="Estimated Casualties"
-              value={report.estimated_number_of_casualties}
-            />
-            <div className="flex items-start gap-3">
-              <div className="bg-red-50 p-2 rounded-lg shrink-0">
-                <MapPin className="w-4 h-4 text-red-500" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="relative flex-1">
+                <Hash className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Input
+                  id="reportId"
+                  placeholder="e.g. RE-1234567890-123"
+                  value={reportId}
+                  onChange={(e) => setReportId(e.target.value)}
+                  className="pl-10"
+                  onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                />
               </div>
-              <div>
-                <p className="text-xs text-gray-400">Location</p>
-                {report.location?.latitude ? (
-                  <Link
-                    href={`https://www.google.com/maps/search/?api=1&query=${report.location.latitude},${report.location.longitude}`}
-                    target="_blank"
-                    className="text-sm font-medium text-gray-800 underline hover:text-red-600 transition-all ease-in-out duration-300"
-                  >
-                    {report.location.latitude.toFixed(5)},{" "}
-                    {report.location.longitude.toFixed(5)}
-                  </Link>
+
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 text-sm font-medium text-white transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400 sm:h-[38px] sm:rounded-lg"
+              >
+                {isSearching ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <p className="text-sm font-medium text-gray-800">—</p>
+                  <Search className="h-4 w-4" />
                 )}
+                {isSearching ? "Searching…" : "Search"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {notFound && (
+          <div className="space-y-2 rounded-2xl border border-red-200 bg-red-50 p-6 text-center sm:rounded-xl">
+            <XCircle className="mx-auto h-10 w-10 text-red-400" />
+            <p className="text-sm font-semibold text-red-700">
+              Report not found
+            </p>
+            <p className="text-xs text-gray-500">
+              Double check the Report ID and try again.
+            </p>
+          </div>
+        )}
+
+        {report && (
+          <div className="space-y-5">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 shadow-sm sm:rounded-xl sm:shadow-none">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex items-center gap-2">
+                  <IncidentIcon className="h-5 w-5 shrink-0 text-red-500" />
+                  <span className="truncate font-mono text-sm font-bold text-gray-800">
+                    {report.report_id}
+                  </span>
+                </div>
+                <div className="shrink-0">
+                  <StatusBadge status={report.status} />
+                </div>
               </div>
             </div>
-            <InfoRow
-              icon={Phone}
-              label="Contact Number"
-              value={report.phone_number}
-            />
-            {report.reporter_user && (
+
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm sm:grid-cols-2 sm:gap-4 sm:rounded-xl">
               <InfoRow
-                icon={User}
-                label="Reported By"
-                value={
-                  typeof report.reporter_user === "object"
-                    ? (report.reporter_user.full_name ?? "Anonymous")
-                    : "Anonymous"
-                }
+                icon={AlertCircle}
+                label="Incident Type"
+                value={report.incident_type?.replace(/_/g, " ")}
+              />
+              <InfoRow
+                icon={Siren}
+                label="Estimated Casualties"
+                value={report.estimated_number_of_casualties}
+              />
+
+              <div className="flex items-start gap-3 rounded-2xl border border-gray-100 bg-white p-3 sm:rounded-none sm:border-0 sm:bg-transparent sm:p-0">
+                <div className="shrink-0 rounded-xl bg-red-50 p-2 sm:rounded-lg">
+                  <MapPin className="h-4 w-4 text-red-500" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-400">Location</p>
+                  {report.location?.latitude ? (
+                    <Link
+                      href={`https://www.google.com/maps/search/?api=1&query=${report.location.latitude},${report.location.longitude}`}
+                      target="_blank"
+                      className="text-sm font-medium text-gray-800 underline transition-all duration-300 ease-in-out hover:text-red-600"
+                    >
+                      {report.location.latitude.toFixed(5)},{" "}
+                      {report.location.longitude.toFixed(5)}
+                    </Link>
+                  ) : (
+                    <p className="text-sm font-medium text-gray-800">—</p>
+                  )}
+                </div>
+              </div>
+
+              <InfoRow
+                icon={Phone}
+                label="Contact Number"
+                value={report.phone_number}
+              />
+
+              {report.reporter_user && (
+                <InfoRow
+                  icon={User}
+                  label="Reported By"
+                  value={
+                    typeof report.reporter_user === "object"
+                      ? (report.reporter_user.full_name ?? "Anonymous")
+                      : "Anonymous"
+                  }
+                />
+              )}
+
+              <InfoRow
+                icon={Clock}
+                label="Submitted At"
+                value={new Date(report.createdAt).toLocaleString("en-NP", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
+                })}
+              />
+            </div>
+
+            {report.description && (
+              <div className="space-y-1 rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm sm:rounded-xl sm:shadow-none">
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Description
+                </p>
+                <p className="text-sm leading-relaxed text-gray-700">
+                  {report.description}
+                </p>
+              </div>
+            )}
+
+            {report.photos?.length > 0 && (
+              <EvidenceFiles
+                photos={report.photos}
+                user={user}
+                report_id={report._id}
               />
             )}
-            <InfoRow
-              icon={Clock}
-              label="Submitted At"
-              value={new Date(report.createdAt).toLocaleString("en-NP", {
-                dateStyle: "medium",
-                timeStyle: "short",
-              })}
-            />
+
+            <AmbulanceETACard report={report} />
+
+            <Timeline events={report.timeline} />
+
+            {!user && (
+              <div className="flex items-start gap-2 rounded-xl border border-blue-200 bg-blue-50 p-3">
+                <Shield className="mt-0.5 h-4 w-4 shrink-0 text-blue-500" />
+                <p className="text-xs text-blue-800">
+                  <span className="font-semibold">Log in</span> to manage this
+                  report or take action on it if you&apos;re concerned
+                  authority.
+                </p>
+              </div>
+            )}
+
+            <div className="sticky bottom-22 z-20 bg-transparent sm:static">
+              <div className="rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+                <ActionButtons
+                  report={report}
+                  user={user}
+                  onAction={handleAction}
+                  isActing={isActing}
+                />
+              </div>
+            </div>
           </div>
-
-          {/* Description */}
-          {report.description && (
-            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Description
-              </p>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                {report.description}
-              </p>
-            </div>
-          )}
-
-          {/* Evidence Files */}
-          {report.photos?.length > 0 && (
-            <EvidenceFiles
-              photos={report.photos}
-              user={user}
-              report_id={report._id}
-            />
-          )}
-
-          {/* Ambulance ETA — visible when an offer has been accepted */}
-          <AmbulanceETACard report={report} />
-
-          {/* Timeline */}
-          <Timeline events={report.timeline} />
-
-          {/* Not logged in notice */}
-          {!user && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
-              <Shield className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-blue-800">
-                <span className="font-semibold">Log in</span> to manage this
-                report or take action on it if you're concerned authority.
-              </p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <ActionButtons
-            report={report}
-            user={user}
-            onAction={handleAction}
-            isActing={isActing}
-          />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

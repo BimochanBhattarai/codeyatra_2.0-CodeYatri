@@ -1,13 +1,12 @@
 import express from "express";
-import {
-  handle_get_global_settings,
-  handle_update_global_settings,
-} from "../controllers/global.controller.js";
+import GlobalController from "../controllers_class/global.controller.js";
 
 const global_router = express.Router();
 
-global_router.get("/", handle_get_global_settings);
+global_router.get("/", (req, res) => GlobalController.get_settings(req, res));
 
-global_router.post("/update", handle_update_global_settings);
+global_router.post("/update", (req, res) =>
+  GlobalController.update_settings(req, res),
+);
 
 export default global_router;

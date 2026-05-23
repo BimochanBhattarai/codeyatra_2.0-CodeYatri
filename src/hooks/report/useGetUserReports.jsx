@@ -4,7 +4,7 @@ export const useGetUserReports = () => {
   return useQuery({
     queryKey: ["userReports"],
     queryFn: async () => {
-      const response = await fetch("/api/report/user", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/user`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

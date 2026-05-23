@@ -45,9 +45,10 @@ export const useSubmitAmbulanceDriverApplication = () => {
       formData.append("bluebook_expiry", bluebook_expiry);
       formData.append("bluebook_photo", bluebook_photo);
 
-      const response = await fetch("/api/ambulance_driver/submit_application", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ambulance_driver/submit_application`, {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (!response.ok) {

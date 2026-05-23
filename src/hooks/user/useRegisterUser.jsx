@@ -3,8 +3,9 @@ import { useMutation } from "@tanstack/react-query";
 export const useRegisterUser = () => {
   return useMutation({
     mutationFn: async ({ full_name, phone_number, password }) => {
-      const response = await fetch("/api/user/register", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/register`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

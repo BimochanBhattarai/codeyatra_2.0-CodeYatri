@@ -21,6 +21,10 @@ const user_schema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    type_change_requested: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );

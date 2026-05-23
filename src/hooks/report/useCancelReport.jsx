@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 export const useCancelReport = () => {
   return useMutation({
     mutationFn: async (reportId) => {
-      const response = await fetch(`/api/report/cancel/${reportId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/cancel/${reportId}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

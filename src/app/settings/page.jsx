@@ -5,20 +5,18 @@ import { AuthContext } from "@/contexts/AuthProvider";
 import { useGetGlobals } from "@/hooks/global/useGetGlobals";
 import { useUpdateGlobals } from "@/hooks/global/useUpdateGlobals";
 import {
-    AlertCircle,
-    Bell,
-    Loader2,
-    Phone,
-    Plus,
-    Save,
-    Shield,
-    Trash2,
+  AlertCircle,
+  Bell,
+  Loader2,
+  Phone,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
-
-// ─── Shared Components ────────────────────────────────────────────────────────
 
 function Input({
   id,
@@ -28,6 +26,7 @@ function Input({
   onChange,
   className = "",
   maxLength,
+  onKeyDown,
 }) {
   return (
     <input
@@ -37,7 +36,8 @@ function Input({
       value={value}
       onChange={onChange}
       maxLength={maxLength}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${className}`}
+      onKeyDown={onKeyDown}
+      className={`w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg sm:py-2 ${className}`}
     />
   );
 }
@@ -55,17 +55,17 @@ function Label({ htmlFor, children, className = "" }) {
 
 function SectionCard({ icon: Icon, title, children }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Icon className="w-4 h-4 text-red-500" />
-        <h3 className="text-sm font-semibold text-red-600">{title}</h3>
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:space-y-4 sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Icon className="h-4 w-4 text-red-500" />
+          <h3 className="text-sm font-semibold text-red-600">{title}</h3>
+        </div>
+        {children}
       </div>
-      {children}
     </div>
   );
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 const GlobalSettingsPage = () => {
   const { user } = useContext(AuthContext);
@@ -78,7 +78,6 @@ const GlobalSettingsPage = () => {
   const { data: settings, isLoading } = useGetGlobals();
   const { mutate: updateSettings, isPending: isSaving } = useUpdateGlobals();
 
-  // ── Auth guard ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (
       user &&
@@ -87,16 +86,14 @@ const GlobalSettingsPage = () => {
     ) {
       router.push("/report");
     }
-  }, [user]);
+  }, [user, router]);
 
-  // ── Populate from server ────────────────────────────────────────────────────
   useEffect(() => {
     if (settings?.police_mobile_alerts) {
       setNumbers(settings.police_mobile_alerts);
     }
   }, [settings]);
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
   const validateNumber = (num) => {
     if (!num.trim()) return "Phone number is required.";
     if (!/^\d{10}$/.test(num.trim())) return "Enter a valid 10-digit number.";
@@ -130,145 +127,154 @@ const GlobalSettingsPage = () => {
 
   return (
     <AuthenticatedWrapper>
-      <div className="bg-white container py-8 space-y-5 max-w-4xl">
-        {/* Header */}
-        <div className="text-center space-y-1">
-          <h2 className="text-3xl font-bold text-gray-900">Global Settings</h2>
-          <p className="text-gray-500 text-sm">
-            Manage system-wide configuration for emergency alerts and
-            notifications.
-          </p>
-        </div>
-
-        {/* Admin-only notice */}
-        <div className="bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
-          <Shield className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-          <p className="text-xs text-red-700">
-            Changes made here affect the entire system. Only authorized
-            personnel should modify these settings.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="w-6 h-6 animate-spin text-red-500" />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {/* SMS Alert Numbers */}
-            <SectionCard icon={Bell} title="Police SMS Alert Numbers">
-              <p className="text-xs text-gray-500">
-                These numbers will receive an SMS alert whenever a new emergency
-                report is submitted.
+      <div className="container max-w-4xl bg-white px-4 py-4 pb-28 sm:px-0 sm:py-8 sm:pb-8">
+        <div className="space-y-5 sm:space-y-6">
+          <div className="rounded-2xl bg-white p-5 text-center shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+            <div className="space-y-1">
+              <h2 className="text-3xl font-bold text-gray-900">
+                Global Settings
+              </h2>
+              <p className="text-sm text-gray-500">
+                Manage system-wide configuration for emergency alerts and
+                notifications.
               </p>
-
-              {/* Add new number */}
-              <div className="space-y-1.5">
-                <Label htmlFor="newNumber">Add Phone Number</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-                      +977
-                    </span>
-                    <Input
-                      id="newNumber"
-                      type="tel"
-                      placeholder="98XXXXXXXX"
-                      value={newNumber}
-                      maxLength={10}
-                      onChange={(e) => {
-                        setNewNumber(e.target.value);
-                        setNewNumberError("");
-                      }}
-                      onKeyDown={(e) => e.key === "Enter" && handleAdd()}
-                      className={`pl-14 ${newNumberError ? "border-red-500" : ""}`}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleAdd}
-                    className="h-[38px] px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-sm flex items-center gap-2 shrink-0"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Add
-                  </button>
-                </div>
-                {newNumberError && (
-                  <p className="text-xs text-red-500 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" /> {newNumberError}
-                  </p>
-                )}
-              </div>
-
-              {/* Numbers list */}
-              {numbers.length === 0 ? (
-                <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center space-y-2">
-                  <Phone className="w-8 h-8 text-gray-300 mx-auto" />
-                  <p className="text-sm font-medium text-gray-400">
-                    No numbers added yet
-                  </p>
-                  <p className="text-xs text-gray-400">
-                    Add at least one number to receive SMS alerts.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {numbers.map((number, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-4 py-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-red-50 p-1.5 rounded-lg">
-                          <Phone className="w-3.5 h-3.5 text-red-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-800">
-                            +977 {number}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            SMS alerts enabled
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemove(index)}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  <p className="text-xs text-gray-400 text-right">
-                    {numbers.length} number{numbers.length !== 1 ? "s" : ""}{" "}
-                    configured
-                  </p>
-                </div>
-              )}
-            </SectionCard>
-
-            {/* Save button */}
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full h-12 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4" />
-                  Save Settings
-                </>
-              )}
-            </button>
+            </div>
           </div>
-        )}
+
+          <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 sm:rounded-lg sm:p-3">
+            <Shield className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+            <p className="text-xs leading-5 text-red-700">
+              Changes made here affect the entire system. Only authorized
+              personnel should modify these settings.
+            </p>
+          </div>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-6 w-6 animate-spin text-red-500" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <SectionCard icon={Bell} title="Police SMS Alert Numbers">
+                <p className="text-xs text-gray-500">
+                  These numbers will receive an SMS alert whenever a new
+                  emergency report is submitted.
+                </p>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="newNumber">Add Phone Number</Label>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <div className="relative flex-1">
+                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                        +977
+                      </span>
+                      <Input
+                        id="newNumber"
+                        type="tel"
+                        placeholder="98XXXXXXXX"
+                        value={newNumber}
+                        maxLength={10}
+                        onChange={(e) => {
+                          setNewNumber(e.target.value);
+                          setNewNumberError("");
+                        }}
+                        onKeyDown={(e) => e.key === "Enter" && handleAdd()}
+                        className={`pl-14 ${
+                          newNumberError ? "border-red-500" : ""
+                        }`}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAdd}
+                      className="flex h-12 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-medium text-white transition-all hover:bg-red-700 sm:h-[38px] sm:rounded-lg"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </button>
+                  </div>
+
+                  {newNumberError && (
+                    <p className="flex items-center gap-1 text-xs text-red-500">
+                      <AlertCircle className="h-3 w-3" /> {newNumberError}
+                    </p>
+                  )}
+                </div>
+
+                {numbers.length === 0 ? (
+                  <div className="space-y-2 rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center sm:rounded-xl">
+                    <Phone className="mx-auto h-8 w-8 text-gray-300" />
+                    <p className="text-sm font-medium text-gray-400">
+                      No numbers added yet
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Add at least one number to receive SMS alerts.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {numbers.map((number, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 sm:rounded-lg"
+                      >
+                        <div className="min-w-0 flex items-center gap-3">
+                          <div className="shrink-0 rounded-lg bg-red-50 p-2 sm:p-1.5">
+                            <Phone className="h-4 w-4 text-red-500 sm:h-3.5 sm:w-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-800">
+                              +977 {number}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              SMS alerts enabled
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemove(index)}
+                          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-gray-400 transition-all hover:bg-red-50 hover:text-red-600 sm:h-8 sm:w-8 sm:rounded-lg"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+
+                    <p className="text-right text-xs text-gray-400">
+                      {numbers.length} number{numbers.length !== 1 ? "s" : ""}{" "}
+                      configured
+                    </p>
+                  </div>
+                )}
+              </SectionCard>
+
+              <div className="sticky bottom-22 z-20 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400 sm:rounded-lg"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Saving…
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4" />
+                      Save Settings
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </AuthenticatedWrapper>
   );

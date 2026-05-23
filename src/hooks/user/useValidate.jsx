@@ -12,7 +12,7 @@ export const useValidate = () => {
    * Function to validate user token
    */
   const validateUser = async () => {
-    const response = await fetch(`/api/user/verify_user_token`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/verify_user_token`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },

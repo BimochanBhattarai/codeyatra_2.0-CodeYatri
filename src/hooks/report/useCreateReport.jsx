@@ -24,9 +24,10 @@ export const useCreateReport = () => {
         formData.append("photos", photo);
       });
 
-      const response = await fetch("/api/report/add", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/add`, {
         method: "POST",
         body: formData,
+        credentials: "include",
       });
 
       if (!response.ok) {

@@ -3,8 +3,9 @@ import { useMutation } from "@tanstack/react-query";
 export const useVerifyPhone = () => {
   return useMutation({
     mutationFn: async ({ user_id, verification_code }) => {
-      const response = await fetch("/api/user/verify_phone", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/verify_phone`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

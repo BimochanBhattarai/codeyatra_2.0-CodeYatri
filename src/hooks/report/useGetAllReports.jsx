@@ -4,7 +4,7 @@ export const useGetAllReports = () => {
   return useQuery({
     queryKey: ["allReports"],
     queryFn: async () => {
-      const response = await fetch("/api/report/all", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/all`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

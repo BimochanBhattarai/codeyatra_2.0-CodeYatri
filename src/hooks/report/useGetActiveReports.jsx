@@ -4,7 +4,7 @@ export const useGetActiveReports = () => {
   return useQuery({
     queryKey: ["activeReports"],
     queryFn: async () => {
-      const response = await fetch("/api/report/active", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/active`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

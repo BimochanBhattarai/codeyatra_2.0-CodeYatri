@@ -4,7 +4,7 @@ export const useAcceptAmbulanceOffer = () => {
   return useMutation({
     mutationFn: async ({ report_id, response_location }) => {
       const response = await fetch(
-        `/api/report/accept_ambulance_offer/${report_id}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/ambulance_driver/accept_offer/${report_id}`,
         {
           method: "POST",
           headers: {

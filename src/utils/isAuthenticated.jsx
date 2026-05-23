@@ -12,7 +12,7 @@ export default function isAuthenticated(Component) {
       if (!user) {
         return redirect("/login");
       }
-    }, []);
+    }, [user]);
 
     if (!user) {
       return null;

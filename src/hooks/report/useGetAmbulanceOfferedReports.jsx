@@ -4,7 +4,7 @@ export const useGetAmbulanceOfferedReports = () => {
   return useQuery({
     queryKey: ["ambulanceOfferedReports"],
     queryFn: async () => {
-      const response = await fetch("/api/report/ambulance_offered_reports", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ambulance_driver/offered_reports`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

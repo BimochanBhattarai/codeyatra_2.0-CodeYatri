@@ -2,7 +2,7 @@
 
 import { AuthContext } from "@/contexts/AuthProvider";
 import { useLogoutUser } from "@/hooks/user/useLogoutUser";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, FileUser } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useContext, useEffect, useState } from "react";
@@ -17,7 +17,9 @@ const Header = () => {
   useEffect(() => {
     const checkServicesStatus = async () => {
       try {
-        const response = await fetch("/api/status");
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/status`, {
+          credentials: "include",
+        });
         const data = await response.json();
         if (response.ok) {
           setServicesActive(data.servicesActive);
@@ -49,14 +51,23 @@ const Header = () => {
   }, []);
 
   return (
-    <div className="p-4 border-b-2 border-b-gray-100 w-full bg-white flex items-center justify-center">
-      <div className="container flex items-center justify-between">
-        <Link href="/">
-          <Image src="/logo.png" alt="uddhar logo" width={104} height={104} />
+    <div className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur sm:border-b-2 sm:bg-white sm:backdrop-blur-0">
+      <div className="container flex items-center justify-between px-4 py-3 sm:px-0 sm:py-4">
+        <Link href="/" className="shrink-0">
+          <Image
+            src="/logo.png"
+            alt="uddhar logo"
+            width={104}
+            height={104}
+            className="max-h-10 w-auto sm:h-auto"
+          />
         </Link>
-        <div className="flex items-center justify-start gap-6">
+
+        <div className="flex items-center justify-start gap-2 sm:gap-6">
           <div
-            className={`text-xs ${servicesActive ? "text-green-500" : "text-red-500"} font-bold uppercase hidden sm:flex flex-col items-end`}
+            className={`hidden text-xs font-bold uppercase sm:flex sm:flex-col sm:items-end ${
+              servicesActive ? "text-green-500" : "text-red-500"
+            }`}
           >
             <div className="flex items-center justify-center gap-1">
               <span className="animate-pulse text-xl leading-0">●</span>
@@ -64,7 +75,7 @@ const Header = () => {
                 emergency services {servicesActive ? "active" : "inactive"}
               </span>
             </div>
-            <div className="text-black font-medium">
+            <div className="font-medium text-black">
               {new Date().toLocaleString("en-US", {
                 hour: "numeric",
                 minute: "numeric",
@@ -78,16 +89,37 @@ const Header = () => {
               })}
             </div>
           </div>
+
+          <div
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide sm:hidden ${
+              servicesActive
+                ? "bg-green-50 text-green-600"
+                : "bg-red-50 text-red-600"
+            }`}
+          >
+            {servicesActive ? "Services Active" : "Services Down"}
+          </div>
+
+          {user && user.user_type === "admin" && (
+            <Link
+              href="/manage_driver_applications"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-in-out hover:bg-red-50 hover:text-red-600 sm:h-auto sm:w-auto sm:rounded-none sm:hover:bg-transparent"
+            >
+              <FileUser size={20} />
+            </Link>
+          )}
+
           {user &&
             (user.user_type === "admin" ||
               user.user_type === "police_officer") && (
               <Link
-                href={"/settings"}
-                className="hover:text-red-600 disabled:opacity-50 transition-all ease-in-out duration-300 cursor-pointer"
+                href="/settings"
+                className="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-in-out hover:bg-red-50 hover:text-red-600 sm:h-auto sm:w-auto sm:rounded-none sm:hover:bg-transparent"
               >
                 <Settings size={20} />
               </Link>
             )}
+
           {user && (
             <button
               onClick={() => {
@@ -96,7 +128,7 @@ const Header = () => {
                 toast.success("Logged out successfully.");
               }}
               disabled={isLoggingOut}
-              className="hover:text-red-600 disabled:opacity-50 transition-all ease-in-out duration-300 cursor-pointer"
+              className="flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ease-in-out hover:bg-red-50 hover:text-red-600 disabled:opacity-50 sm:h-auto sm:w-auto sm:rounded-none sm:hover:bg-transparent"
             >
               <LogOut size={20} />
             </button>

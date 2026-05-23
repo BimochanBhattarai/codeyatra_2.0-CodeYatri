@@ -4,12 +4,12 @@ export const useGetUserTypeChangeApplications = () => {
   return useQuery({
     queryKey: ["userTypeChangeApplications"],
     queryFn: async () => {
-      const response = await fetch("/api/user/user_type_change_applications", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/user_type_change_applications`, {
         method: "GET",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
       });
 
       if (!response.ok) {

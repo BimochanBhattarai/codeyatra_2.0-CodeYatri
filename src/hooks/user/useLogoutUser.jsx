@@ -3,8 +3,9 @@ import { useMutation } from "@tanstack/react-query";
 export const useLogoutUser = () => {
   return useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/user/logout", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/logout`, {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

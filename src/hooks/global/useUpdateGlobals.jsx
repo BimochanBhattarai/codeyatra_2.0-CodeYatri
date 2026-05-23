@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 export const useUpdateGlobals = () => {
   return useMutation({
     mutationFn: async ({ police_mobile_alerts }) => {
-      const response = await fetch("/api/global/update", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/global/update`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

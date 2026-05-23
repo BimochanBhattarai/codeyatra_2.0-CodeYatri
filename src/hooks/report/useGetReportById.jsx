@@ -4,7 +4,7 @@ export const useGetReportById = (reportId) => {
   return useQuery({
     queryKey: ["report", reportId],
     queryFn: async () => {
-      const response = await fetch(`/api/report/track/${reportId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/report/track/${reportId}`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

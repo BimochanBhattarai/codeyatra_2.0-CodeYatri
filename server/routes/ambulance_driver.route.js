@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import { nanoid } from "nanoid";
 import path from "path";
-import { handle_submit_ambulance_driver_application } from "../controllers/ambulance_driver.controller.js";
+import AmbulanceController from "../controllers_class/ambulance.controller.js";
 
 const ambulanceDriverPhotoUpload = multer({
   limits: { fileSize: 10000000 },
@@ -14,10 +14,8 @@ const ambulanceDriverPhotoUpload = multer({
   },
   storage: multer.diskStorage({
     destination: "./private/uploads/ambulance_driver/",
-    filename: function (req, file, cb) {
-      const ext = path.extname(file.originalname);
-      const randomName = `${nanoid(32)}`;
-      cb(null, randomName + ext);
+    filename: (req, file, cb) => {
+      cb(null, `${nanoid(32)}${path.extname(file.originalname)}`);
     },
   }),
 });
@@ -45,7 +43,31 @@ ambulance_driver_router.post(
     { name: "bluebook_photo", maxCount: 1 },
   ]),
   ambulanceDriverPhotoSizeErrorHandler,
-  handle_submit_ambulance_driver_application,
+  (req, res) => AmbulanceController.submit_application(req, res),
+);
+
+ambulance_driver_router.get("/offered_reports", (req, res) =>
+  AmbulanceController.get_offered_reports(req, res),
+);
+
+ambulance_driver_router.get("/accepted_reports", (req, res) =>
+  AmbulanceController.get_accepted_reports(req, res),
+);
+
+ambulance_driver_router.post("/accept_offer/:report_id", (req, res) =>
+  AmbulanceController.accept_offer(req, res),
+);
+
+ambulance_driver_router.post("/reject_offer/:report_id", (req, res) =>
+  AmbulanceController.reject_offer(req, res),
+);
+
+ambulance_driver_router.post("/picked_up_patient/:report_id", (req, res) =>
+  AmbulanceController.picked_up_patient(req, res),
+);
+
+ambulance_driver_router.post("/resolve_report/:report_id", (req, res) =>
+  AmbulanceController.resolve_report(req, res),
 );
 
 export default ambulance_driver_router;

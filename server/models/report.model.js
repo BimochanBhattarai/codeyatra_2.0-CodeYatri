@@ -22,6 +22,7 @@ const report_schema = new mongoose.Schema(
         "pending",
         "verified",
         "in_progress",
+        "picked_up",
         "halted",
         "resolved",
         "rejected",

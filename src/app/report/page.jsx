@@ -1,5 +1,7 @@
 "use client";
 
+import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 import { useCreateReport } from "@/hooks/report/useCreateReport";
 import "leaflet/dist/leaflet.css";
 import {
@@ -97,7 +99,6 @@ function MapPicker({ latitude, longitude, onLocationSelect }) {
         delete mapRef.current._leaflet_id;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -108,8 +109,10 @@ function MapPicker({ latitude, longitude, onLocationSelect }) {
       !longitude
     )
       return;
+
     const L = leafletRef.current;
     mapInstanceRef.current.setView([latitude, longitude], 15);
+
     if (markerRef.current) {
       markerRef.current.setLatLng([latitude, longitude]);
     } else {
@@ -122,22 +125,23 @@ function MapPicker({ latitude, longitude, onLocationSelect }) {
   return (
     <div className="space-y-2">
       <div
-        className="relative w-full rounded-xl overflow-hidden border-2 border-gray-200"
+        className="map-shell relative isolate w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm sm:rounded-xl sm:border-2 sm:shadow-none"
         style={{ height: "256px" }}
       >
         {!isMapReady && (
-          <div className="absolute inset-0 bg-gray-50 flex items-center justify-center z-10">
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-50">
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-red-500" />
+              <Loader2 className="h-6 w-6 animate-spin text-red-500" />
               <p className="text-xs text-gray-400">Loading map...</p>
             </div>
           </div>
         )}
-        <div ref={mapRef} className="w-full h-full" />
+        <div ref={mapRef} className="h-full w-full" />
       </div>
-      <p className="text-xs text-gray-400 flex items-center gap-1">
-        <MapPin className="w-3 h-3" />
-        Click anywhere on the map to pin the incident location
+
+      <p className="flex items-center gap-1 text-xs text-gray-400">
+        <MapPin className="h-3 w-3" />
+        Tap anywhere on the map to pin the incident location
       </p>
     </div>
   );
@@ -162,7 +166,7 @@ function Input({
       onChange={onChange}
       min={min}
       maxLength={maxLength}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${className}`}
+      className={`w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg sm:px-3 sm:py-2 ${className}`}
     />
   );
 }
@@ -182,7 +186,7 @@ function Textarea({
       value={value}
       onChange={onChange}
       rows={rows}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition resize-none ${className}`}
+      className={`w-full resize-none rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg sm:px-3 sm:py-2 ${className}`}
     />
   );
 }
@@ -200,9 +204,9 @@ function Label({ htmlFor, children, className = "" }) {
 
 function Progress({ value = 0 }) {
   return (
-    <div className="w-full bg-red-100 rounded-full h-2 overflow-hidden">
+    <div className="h-2 w-full overflow-hidden rounded-full bg-red-100">
       <div
-        className="bg-red-600 h-2 rounded-full transition-all duration-500"
+        className="h-2 rounded-full bg-red-600 transition-all duration-500"
         style={{ width: `${value}%` }}
       />
     </div>
@@ -250,24 +254,26 @@ const INCIDENT_TYPES = [
 
 function StepProgressBar({ currentStep }) {
   const progressValue = ((currentStep - 1) / STEPS.length) * 100;
+
   return (
-    <div className="bg-white">
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-white sm:p-0 sm:shadow-none">
       <div className="mb-4">
-        <div className="flex justify-between items-center mb-2">
+        <div className="mb-2 flex items-center justify-between">
           <span className="text-sm text-gray-500">
             Step {currentStep} of {STEPS.length}
           </span>
-          <span className="text-sm text-red-600 font-medium">
+          <span className="text-sm font-medium text-red-600">
             {Math.round(progressValue)}% Complete
           </span>
         </div>
         <Progress value={progressValue} />
       </div>
+
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {STEPS.map((step) => (
           <div
             key={step.id}
-            className={`flex flex-col items-center justify-center text-center px-2 py-3 rounded-lg transition-all ${
+            className={`flex flex-col items-center justify-center rounded-xl px-2 py-3 text-center transition-all sm:rounded-lg ${
               step.id === currentStep
                 ? "bg-red-600 text-white"
                 : step.id < currentStep
@@ -276,7 +282,7 @@ function StepProgressBar({ currentStep }) {
             }`}
           >
             <div
-              className={`sm:size-8 size-6 rounded-full flex items-center justify-center mb-1 text-xs sm:text-sm font-bold ${
+              className={`mb-1 flex size-7 items-center justify-center rounded-full text-xs font-bold sm:size-8 sm:text-sm ${
                 step.id === currentStep
                   ? "bg-white text-red-600"
                   : step.id < currentStep
@@ -285,15 +291,16 @@ function StepProgressBar({ currentStep }) {
               }`}
             >
               {step.id < currentStep ? (
-                <CheckCircle2 className="w-5 h-5" />
+                <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
                 step.id
               )}
             </div>
-            <p className="text-xs sm:text-sm font-medium sm:font-semibold leading-tight line-clamp-1">
+
+            <p className="line-clamp-1 text-[11px] font-medium leading-tight sm:text-sm sm:font-semibold">
               {step.title}
             </p>
-            <p className="text-xs hidden sm:block opacity-75 mt-0.5">
+            <p className="mt-0.5 hidden text-xs opacity-75 sm:block">
               {step.description}
             </p>
           </div>
@@ -303,34 +310,82 @@ function StepProgressBar({ currentStep }) {
   );
 }
 
+function MobileSection({ children }) {
+  return (
+    <div className="rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+      {children}
+    </div>
+  );
+}
+
+async function getCurrentLocationForPlatform() {
+  const isNative = Capacitor.isNativePlatform();
+
+  if (isNative) {
+    const permission = await Geolocation.requestPermissions();
+
+    if (
+      permission?.location === "denied" ||
+      permission?.coarseLocation === "denied"
+    ) {
+      throw new Error("Location permission denied.");
+    }
+
+    const position = await Geolocation.getCurrentPosition({
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
+    });
+
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+  }
+
+  if (!navigator.geolocation) {
+    throw new Error("Geolocation is not supported by your browser.");
+  }
+
+  return await new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }),
+      () =>
+        reject(
+          new Error(
+            "Unable to get location. Please enable location services.",
+          ),
+        ),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+    );
+  });
+}
+
 function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => setIsMounted(true), []);
 
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation is not supported by your browser.");
-      return;
+  const handleGetCurrentLocation = async () => {
+    try {
+      setIsLoadingLocation(true);
+      const { latitude, longitude } = await getCurrentLocationForPlatform();
+
+      updateFormData({
+        location: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+        latitude,
+        longitude,
+      });
+    } catch (error) {
+      toast.error(error?.message || "Unable to get location.");
+    } finally {
+      setIsLoadingLocation(false);
     }
-    setIsLoadingLocation(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        updateFormData({
-          location: `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
-          latitude,
-          longitude,
-        });
-        setIsLoadingLocation(false);
-      },
-      () => {
-        toast.error("Unable to get location. Please enable location services.");
-        setIsLoadingLocation(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
-    );
   };
 
   const handleMapClick = (lat, lng) => {
@@ -356,135 +411,156 @@ function IncidentDetailsStep({ formData, updateFormData, onNext, toast }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>
-          Incident Location <span className="text-red-500">*</span>
-        </Label>
-        <p className="text-xs text-gray-400">
-          Use GPS or click on the map to mark the incident location
-        </p>
+    <div className="space-y-4 sm:space-y-6">
+      <MobileSection>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label>
+              Incident Location <span className="text-red-500">*</span>
+            </Label>
+            <p className="text-xs text-gray-400">
+              Use GPS or click on the map to mark the incident location
+            </p>
 
-        <button
-          type="button"
-          onClick={handleGetCurrentLocation}
-          disabled={isLoadingLocation}
-          className="w-full h-10 flex items-center justify-center gap-2 border border-red-600 text-red-600 rounded-lg text-sm font-medium hover:bg-red-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isLoadingLocation ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Detecting Location...
-            </>
-          ) : (
-            <>
-              <Navigation className="w-4 h-4" /> Use My Current Location
-            </>
-          )}
-        </button>
+            <button
+              type="button"
+              onClick={handleGetCurrentLocation}
+              disabled={isLoadingLocation}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-red-600 text-sm font-medium text-red-600 transition-all hover:bg-red-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:rounded-lg"
+            >
+              {isLoadingLocation ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Detecting
+                  Location...
+                </>
+              ) : (
+                <>
+                  <Navigation className="h-4 w-4" /> Use My Current Location
+                </>
+              )}
+            </button>
 
-        {isMounted && (
-          <MapPicker
-            latitude={formData.latitude}
-            longitude={formData.longitude}
-            onLocationSelect={handleMapClick}
-          />
-        )}
+            {isMounted && (
+              <MapPicker
+                latitude={formData.latitude}
+                longitude={formData.longitude}
+                onLocationSelect={handleMapClick}
+              />
+            )}
 
-        {formData.latitude && formData.longitude && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-            <p className="text-xs text-green-800 font-medium">
-              Location pinned successfully.
+            {formData.latitude && formData.longitude && (
+              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-3 sm:rounded-lg">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+                <p className="text-xs font-medium text-green-800">
+                  Location pinned successfully.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="casualties">
+              Estimated Number of Casualties{" "}
+              <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="casualties"
+              type="number"
+              min="0"
+              placeholder="e.g., 2"
+              value={formData.casualties}
+              onChange={(e) => updateFormData({ casualties: e.target.value })}
+            />
+            <p className="text-xs text-gray-400">
+              Approximate number of injured or affected individuals
             </p>
           </div>
-        )}
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="casualties">
-          Estimated Number of Casualties <span className="text-red-500">*</span>
-        </Label>
-        <Input
-          id="casualties"
-          type="number"
-          min="0"
-          placeholder="e.g., 2"
-          value={formData.casualties}
-          onChange={(e) => updateFormData({ casualties: e.target.value })}
-        />
-        <p className="text-xs text-gray-400">
-          Approximate number of injured or affected individuals
-        </p>
-      </div>
+          <div className="space-y-2">
+            <Label>
+              Incident Type <span className="text-red-500">*</span>
+            </Label>
+            <div className="space-y-2">
+              {INCIDENT_TYPES.map((type) => {
+                const Icon = type.icon;
+                const selected = formData.incidentType === type.value;
 
-      <div className="space-y-2">
-        <Label>
-          Incident Type <span className="text-red-500">*</span>
-        </Label>
-        <div className="space-y-2">
-          {INCIDENT_TYPES.map((type) => {
-            const Icon = type.icon;
-            const selected = formData.incidentType === type.value;
-            return (
-              <button
-                key={type.value}
-                type="button"
-                onClick={() => updateFormData({ incidentType: type.value })}
-                className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 text-left transition-all hover:bg-gray-50 ${
-                  selected ? "border-red-600 bg-red-50" : "border-gray-200"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded-lg shrink-0 ${selected ? "bg-red-600 text-white" : "bg-gray-100 text-gray-500"}`}
-                >
-                  <Icon className="w-5 h-5" />
-                </div>
-                <div>
-                  <p
-                    className={`text-sm font-medium ${selected ? "text-red-700" : "text-gray-700"}`}
+                return (
+                  <button
+                    key={type.value}
+                    type="button"
+                    onClick={() => updateFormData({ incidentType: type.value })}
+                    className={`w-full rounded-xl border-2 p-4 text-left transition-all sm:rounded-lg ${
+                      selected
+                        ? "border-red-600 bg-red-50"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
                   >
-                    {type.label}
-                  </p>
-                  <p className="text-xs text-gray-400">{type.description}</p>
-                </div>
-                <div
-                  className={`ml-auto w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                    selected ? "border-red-600 bg-red-600" : "border-gray-300"
-                  }`}
-                >
-                  {selected && (
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`shrink-0 rounded-lg p-2 ${
+                          selected
+                            ? "bg-red-600 text-white"
+                            : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5" />
+                      </div>
 
-      <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-red-600 mb-2">
+                      <div>
+                        <p
+                          className={`text-sm font-medium ${
+                            selected ? "text-red-700" : "text-gray-700"
+                          }`}
+                        >
+                          {type.label}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {type.description}
+                        </p>
+                      </div>
+
+                      <div
+                        className={`ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+                          selected
+                            ? "border-red-600 bg-red-600"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        {selected && (
+                          <div className="h-2 w-2 rounded-full bg-white" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </MobileSection>
+
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-4 sm:rounded-lg">
+        <h4 className="mb-2 text-sm font-semibold text-red-600">
           Critical Information
         </h4>
-        <ul className="text-xs text-gray-500 space-y-1">
-          <li>
-            • Precise location helps dispatch the nearest emergency services
-          </li>
+        <ul className="space-y-1 text-xs text-gray-500">
+          <li>• Precise location helps dispatch the nearest emergency services</li>
           <li>• Casualty count helps prepare adequate medical resources</li>
           <li>• Incident type determines the right response team</li>
-          <li>
-            • All information is shared with police and ambulance services
-          </li>
+          <li>• All information is shared with police and ambulance services</li>
         </ul>
       </div>
 
-      <button
-        type="button"
-        onClick={handleNext}
-        className="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-sm"
-      >
-        Continue to Evidence Upload
-      </button>
+      <div className="sticky bottom-22 z-20 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
+        <button
+          type="button"
+          onClick={handleNext}
+          className="h-12 w-full rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700 sm:rounded-lg"
+        >
+          Continue to Evidence Upload
+        </button>
+      </div>
     </div>
   );
 }
@@ -498,7 +574,6 @@ function PhotoDescriptionStep({
 }) {
   const cameraInputRef = useRef(null);
 
-  // Each tap of the camera button adds one photo
   const handleCameraCapture = (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -533,130 +608,128 @@ function PhotoDescriptionStep({
   const previews = formData.imagePreviews || [];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="space-y-1">
-        <Label>
-          Incident Photos <span className="text-red-500">*</span>
-        </Label>
-        <p className="text-sm text-gray-400">
-          Take photos of the scene using your camera. Add as many as needed.
-        </p>
-      </div>
-
-      {/* Camera capture input — always hidden, triggered by button */}
-      <input
-        ref={cameraInputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={handleCameraCapture}
-        className="hidden"
-      />
-
-      {/* Empty state — big camera CTA */}
-      {previews.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-200 rounded-xl p-10 text-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="bg-red-100 rounded-full p-5">
-              <Camera className="w-12 h-12 text-red-400" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-1">
-                No photos yet
-              </p>
-              <p className="text-xs text-gray-400 mb-4">
-                Use your camera to capture the incident scene
-              </p>
-              <button
-                type="button"
-                onClick={() => cameraInputRef.current?.click()}
-                className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-3 rounded-lg transition-all text-sm"
-              >
-                <Camera className="w-5 h-5" /> Open Camera
-              </button>
-            </div>
-            <p className="text-xs text-gray-400">
-              JPG, PNG • Max 10MB per photo
+    <div className="space-y-4 sm:space-y-6">
+      <MobileSection>
+        <div className="space-y-6">
+          <div className="space-y-1">
+            <Label>
+              Incident Photos <span className="text-red-500">*</span>
+            </Label>
+            <p className="text-sm text-gray-400">
+              Take photos of the scene using your camera. Add as many as needed.
             </p>
           </div>
-        </div>
-      ) : (
-        /* Photo grid with add more button */
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {previews.map((preview, index) => (
-              <div
-                key={index}
-                className="relative rounded-xl overflow-hidden border-2 border-red-100 bg-gray-50 aspect-square"
-              >
-                <img
-                  src={preview}
-                  alt={`Incident photo ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
+
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleCameraCapture}
+            className="hidden"
+          />
+
+          {previews.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center sm:rounded-xl sm:p-10">
+              <div className="flex flex-col items-center gap-4">
+                <div className="rounded-full bg-red-100 p-5">
+                  <Camera className="h-12 w-12 text-red-400" />
+                </div>
+                <div>
+                  <p className="mb-1 text-sm font-medium text-gray-700">
+                    No photos yet
+                  </p>
+                  <p className="mb-4 text-xs text-gray-400">
+                    Use your camera to capture the incident scene
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-red-700 sm:rounded-lg"
+                  >
+                    <Camera className="h-5 w-5" /> Open Camera
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  JPG, PNG • Max 10MB per photo
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {previews.map((preview, index) => (
+                  <div
+                    key={index}
+                    className="relative aspect-square overflow-hidden rounded-2xl border-2 border-red-100 bg-gray-50 sm:rounded-xl"
+                  >
+                    <img
+                      src={preview}
+                      alt={`Incident photo ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(index)}
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-600 text-white shadow-lg transition-all hover:bg-red-700"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+
                 <button
                   type="button"
-                  onClick={() => handleRemoveImage(index)}
-                  className="absolute top-2 right-2 w-6 h-6 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transition-all"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="flex aspect-square flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 text-gray-400 transition-all hover:border-red-400 hover:bg-red-50/30 hover:text-red-500 sm:rounded-xl"
                 >
-                  <X className="w-3 h-3" />
+                  <Camera className="h-6 w-6" />
+                  <span className="text-xs font-medium">Add Photo</span>
                 </button>
               </div>
-            ))}
 
-            {/* Add more — tapping opens camera again */}
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-red-400 hover:bg-red-50/30 flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-red-500 transition-all"
-            >
-              <Camera className="w-6 h-6" />
-              <span className="text-xs font-medium">Add Photo</span>
-            </button>
-          </div>
+              <div className="flex items-center gap-2 rounded-xl border border-green-200 bg-green-50 p-3 sm:rounded-lg">
+                <ImageIcon className="h-4 w-4 shrink-0 text-green-600" />
+                <p className="flex-1 text-xs font-medium text-green-800">
+                  {previews.length} photo{previews.length > 1 ? "s" : ""} captured
+                </p>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition-all hover:bg-red-700"
+                >
+                  <Camera className="h-3.5 w-3.5" /> Take More
+                </button>
+              </div>
+            </div>
+          )}
 
-          <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-3">
-            <ImageIcon className="w-4 h-4 text-green-600 shrink-0" />
-            <p className="text-xs text-green-800 font-medium flex-1">
-              {previews.length} photo{previews.length > 1 ? "s" : ""} captured
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="description">Incident Description</Label>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">
+                Optional
+              </span>
+            </div>
+            <Textarea
+              id="description"
+              placeholder="Describe what happened, what you saw, and any other relevant details..."
+              value={formData.description}
+              onChange={(e) => updateFormData({ description: e.target.value })}
+              rows={4}
+            />
+            <p className="text-xs text-gray-400">
+              Additional details help emergency responders prepare
             </p>
-            <button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              className="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition-all"
-            >
-              <Camera className="w-3.5 h-3.5" /> Take More
-            </button>
           </div>
         </div>
-      )}
+      </MobileSection>
 
-      {/* Description — Optional */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="description">Incident Description</Label>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            Optional
-          </span>
-        </div>
-        <Textarea
-          id="description"
-          placeholder="Describe what happened, what you saw, and any other relevant details..."
-          value={formData.description}
-          onChange={(e) => updateFormData({ description: e.target.value })}
-          rows={4}
-        />
-        <p className="text-xs text-gray-400">
-          Additional details help emergency responders prepare
-        </p>
-      </div>
-
-      <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-red-600 mb-2">
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-4 sm:rounded-lg">
+        <h4 className="mb-2 text-sm font-semibold text-red-600">
           Evidence Guidelines
         </h4>
-        <ul className="text-xs text-gray-500 space-y-1">
+        <ul className="space-y-1 text-xs text-gray-500">
           <li>• Capture the overall scene from a safe distance</li>
           <li>• Include visible landmarks or street signs if possible</li>
           <li>• Multiple angles help responders assess severity</li>
@@ -664,11 +737,11 @@ function PhotoDescriptionStep({
         </ul>
       </div>
 
-      <div className="flex gap-3">
+      <div className="sticky bottom-[76px] z-20 grid grid-cols-2 gap-3 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={onPrevious}
-          className="flex-1 h-12 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium rounded-lg transition-all text-sm"
+          className="h-12 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 sm:rounded-lg"
         >
           Previous
         </button>
@@ -681,7 +754,7 @@ function PhotoDescriptionStep({
               );
             onNext();
           }}
-          className="flex-1 h-12 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all text-sm"
+          className="h-12 rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700 sm:rounded-lg"
         >
           Continue to Contact Info
         </button>
@@ -698,8 +771,6 @@ function PhoneSubmitStep({
   toast,
   isSubmitting,
 }) {
-  // const [isSubmitting, setIsSubmitting] = useState(false);
-
   const handleSubmit = async () => {
     if (!formData.phone.trim())
       return toast.error("Please enter your phone number.");
@@ -707,106 +778,110 @@ function PhoneSubmitStep({
       return toast.error("Please enter a valid phone number.");
     if (formData.phone.length > 10)
       return toast.error("Please enter a valid phone number.");
-
-    // setIsSubmitting(true);
-    // setIsSubmitting(false);
     onSubmit();
   };
 
   return (
-    <div className="space-y-6">
-      <div className="text-center space-y-2 pb-2">
-        <div className="flex justify-center mb-4">
-          <div className="bg-red-100 rounded-full p-5">
-            <Phone className="w-12 h-12 text-red-400" />
+    <div className="space-y-4 sm:space-y-6">
+      <MobileSection>
+        <div className="space-y-6">
+          <div className="space-y-2 pb-2 text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="rounded-full bg-red-100 p-5">
+                <Phone className="h-12 w-12 text-red-400" />
+              </div>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Contact Information
+            </h3>
+            <p className="mx-auto max-w-sm text-sm text-gray-500">
+              Provide your phone number so responders can reach you for
+              additional details.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">
+              Phone Number <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <input
+                id="phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={formData.phone}
+                onChange={(e) =>
+                  updateFormData({ phone: e.target.value.replace(/\D/g, "") })
+                }
+                maxLength={15}
+                className="w-full rounded-xl border border-gray-300 bg-white py-3 pl-10 pr-4 text-sm placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg"
+              />
+            </div>
+            <p className="text-xs text-gray-400">
+              Used only for emergency response communication
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:rounded-xl">
+            <h4 className="text-sm font-semibold text-gray-700">
+              Report Summary
+            </h4>
+            <div className="mt-3 space-y-2 text-xs text-gray-600">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Incident Type</span>
+                <span className="font-medium capitalize">
+                  {formData.incidentType || "—"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Casualties</span>
+                <span className="font-medium">{formData.casualties || "—"}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Location Pinned</span>
+                <span
+                  className={`font-medium ${
+                    formData.latitude ? "text-green-600" : "text-red-500"
+                  }`}
+                >
+                  {formData.latitude ? "Yes ✓" : "No"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-400">Photos</span>
+                <span className="font-medium">
+                  {(formData.images || []).length} attached
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-        <h3 className="text-lg font-semibold text-gray-800">
-          Contact Information
-        </h3>
-        <p className="text-sm text-gray-500 max-w-sm mx-auto">
-          Provide your phone number so responders can reach you for additional
-          details.
-        </p>
-      </div>
+      </MobileSection>
 
-      <div className="space-y-2">
-        <Label htmlFor="phone">
-          Phone Number <span className="text-red-500">*</span>
-        </Label>
-        <div className="relative">
-          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            id="phone"
-            type="tel"
-            placeholder="Enter your phone number"
-            value={formData.phone}
-            onChange={(e) =>
-              updateFormData({ phone: e.target.value.replace(/\D/g, "") })
-            }
-            maxLength={15}
-            className="w-full border border-gray-300 rounded-lg pl-10 pr-4 py-3 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition"
-          />
-        </div>
-        <p className="text-xs text-gray-400">
-          Used only for emergency response communication
-        </p>
-      </div>
-
-      {/* Report summary */}
-      <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-        <h4 className="text-sm font-semibold text-gray-700">Report Summary</h4>
-        <div className="space-y-2 text-xs text-gray-600">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Incident Type</span>
-            <span className="font-medium capitalize">
-              {formData.incidentType || "—"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Casualties</span>
-            <span className="font-medium">{formData.casualties || "—"}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Location Pinned</span>
-            <span
-              className={`font-medium ${formData.latitude ? "text-green-600" : "text-red-500"}`}
-            >
-              {formData.latitude ? "Yes ✓" : "No"}
-            </span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-gray-400">Photos</span>
-            <span className="font-medium">
-              {(formData.images || []).length} attached
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-red-600 mb-2">
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-4 sm:rounded-lg">
+        <h4 className="mb-2 text-sm font-semibold text-red-600">
           Why We Need Your Number
         </h4>
-        <ul className="text-xs text-gray-500 space-y-1">
+        <ul className="space-y-1 text-xs text-gray-500">
           <li>• Allow responders to contact you for additional information</li>
           <li>• Keep you updated on the response status</li>
           <li>• Create accountability for emergency system integrity</li>
         </ul>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
+      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 sm:rounded-lg">
         <strong>Privacy Notice:</strong> Your phone number is only used for
         emergency response purposes and will be handled according to our privacy
         policy.
       </div>
 
-      <div className="flex gap-3">
+      <div className="sticky bottom-[76px] z-20 grid grid-cols-2 gap-3 rounded-2xl bg-white/95 p-3 shadow-lg backdrop-blur sm:static sm:bg-transparent sm:p-0 sm:shadow-none">
         <button
           type="button"
           onClick={onPrevious}
           disabled={isSubmitting}
-          className="flex-1 h-12 border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium rounded-lg transition-all text-sm disabled:opacity-50"
+          className="h-12 rounded-xl border border-gray-300 bg-white text-sm font-medium text-gray-700 transition-all hover:bg-gray-50 disabled:opacity-50 sm:rounded-lg"
         >
           Previous
         </button>
@@ -814,11 +889,11 @@ function PhoneSubmitStep({
           type="button"
           onClick={handleSubmit}
           disabled={isSubmitting}
-          className="flex-1 h-12 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm flex items-center justify-center gap-2"
+          className="flex h-12 items-center justify-center gap-2 rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:rounded-lg"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" /> Submitting...
+              <Loader2 className="h-4 w-4 animate-spin" /> Submitting...
             </>
           ) : (
             "Submit Emergency Report"
@@ -850,14 +925,17 @@ export default function AccidentReportPage() {
 
   const updateFormData = (data) =>
     setFormData((prev) => ({ ...prev, ...data }));
+
   const handleNext = () => {
     window?.scrollTo({ top: 0, behavior: "smooth" });
     setCurrentStep((p) => Math.min(p + 1, STEPS.length));
   };
+
   const handlePrevious = () => {
     window?.scrollTo({ top: 0, behavior: "smooth" });
     setCurrentStep((p) => Math.max(p - 1, 1));
   };
+
   const handleSubmit = () => {
     createReport(
       {
@@ -884,6 +962,7 @@ export default function AccidentReportPage() {
       },
     );
   };
+
   const handleReset = () => {
     setIsComplete(false);
     setCurrentStep(1);
@@ -901,90 +980,115 @@ export default function AccidentReportPage() {
   };
 
   return (
-    <div className="bg-white container py-8 space-y-8 max-w-4xl">
-      <main className="space-y-5">
-        {isComplete ? (
-          <div className="text-center">
-            <div className="flex justify-center mb-6">
-              <div className="bg-green-100 rounded-full p-5">
-                <CheckCircle2 className="w-16 h-16 text-green-600" />
+    <>
+      <style jsx global>{`
+        .map-shell,
+        .map-shell .leaflet-container {
+          position: relative;
+          z-index: 0;
+          overflow: hidden;
+        }
+
+        .map-shell .leaflet-pane,
+        .map-shell .leaflet-top,
+        .map-shell .leaflet-bottom,
+        .map-shell .leaflet-control,
+        .map-shell .leaflet-control-container,
+        .map-shell .leaflet-map-pane,
+        .map-shell .leaflet-popup-pane {
+          z-index: 1 !important;
+        }
+      `}</style>
+
+      <div className="container max-w-4xl space-y-8 bg-white px-4 py-4 pb-24 sm:px-0 sm:py-8 sm:pb-8">
+        <main className="space-y-5">
+          {isComplete ? (
+            <div className="rounded-2xl bg-white p-5 text-center shadow-sm sm:rounded-none sm:p-0 sm:shadow-none">
+              <div className="mb-6 flex justify-center">
+                <div className="rounded-full bg-green-100 p-5">
+                  <CheckCircle2 className="h-16 w-16 text-green-600" />
+                </div>
               </div>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              Report Submitted Successfully!
-            </h3>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto text-sm">
-              Your emergency report has been received and dispatched to nearby
-              responders. Help is on the way.
-            </p>
-            <div className="bg-red-50 p-4 rounded-lg max-w-xs mx-auto border border-red-100 mb-4">
-              <p className="text-sm text-gray-600 mb-1">
-                Report ID:{" "}
-                <Link
-                  href={`/track_report?report_id=${reportId}`}
-                  className="font-mono font-bold text-red-600"
-                >
-                  {reportId}
-                </Link>
+              <h3 className="mb-3 text-2xl font-bold text-gray-900">
+                Report Submitted Successfully!
+              </h3>
+              <p className="mx-auto mb-8 max-w-md text-sm text-gray-500">
+                Your emergency report has been received and dispatched to nearby
+                responders. Help is on the way.
               </p>
-              <p className="text-xs text-gray-400">Save this ID for tracking</p>
+              <div className="mx-auto mb-4 max-w-xs rounded-xl border border-red-100 bg-red-50 p-4 sm:rounded-lg">
+                <p className="mb-1 text-sm text-gray-600">
+                  Report ID:{" "}
+                  <Link
+                    href={`/track_report?report_id=${reportId}`}
+                    className="font-mono font-bold text-red-600"
+                  >
+                    {reportId}
+                  </Link>
+                </p>
+                <p className="text-xs text-gray-400">Save this ID for tracking</p>
+              </div>
+              <div className="mb-8 flex items-center justify-center gap-2 text-xs text-gray-400">
+                <Shield className="h-3.5 w-3.5" />
+                <span>Emergency services have been notified.</span>
+              </div>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="rounded-xl border border-gray-300 px-6 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 sm:rounded-lg"
+              >
+                Submit Another Report
+              </button>
             </div>
-            <div className="flex items-center justify-center gap-2 text-xs text-gray-400 mb-8">
-              <Shield className="w-3.5 h-3.5" />
-              <span>Emergency services have been notified.</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-medium transition"
-            >
-              Submit Another Report
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">
-                Report an Emergency
-              </h2>
-              <p className="text-gray-500 text-sm">
-                Your quick action can save lives. Please provide accurate
-                information about the incident.
-              </p>
-            </div>
-            <StepProgressBar currentStep={currentStep} />
-            <div className="bg-white">
-              {currentStep === 1 && (
-                <IncidentDetailsStep
-                  formData={formData}
-                  updateFormData={updateFormData}
-                  onNext={handleNext}
-                  toast={toast}
-                />
-              )}
-              {currentStep === 2 && (
-                <PhotoDescriptionStep
-                  formData={formData}
-                  updateFormData={updateFormData}
-                  onNext={handleNext}
-                  onPrevious={handlePrevious}
-                  toast={toast}
-                />
-              )}
-              {currentStep === 3 && (
-                <PhoneSubmitStep
-                  formData={formData}
-                  updateFormData={updateFormData}
-                  onSubmit={handleSubmit}
-                  onPrevious={handlePrevious}
-                  toast={toast}
-                  isSubmitting={isCreatingReport}
-                />
-              )}
-            </div>
-          </>
-        )}
-      </main>
-    </div>
+          ) : (
+            <>
+              <div className="rounded-2xl bg-white p-4 shadow-sm sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+                <div className="text-center">
+                  <h2 className="mb-2 text-3xl font-bold text-gray-900">
+                    Report an Emergency
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Your quick action can save lives. Please provide accurate
+                    information about the incident.
+                  </p>
+                </div>
+              </div>
+
+              <StepProgressBar currentStep={currentStep} />
+
+              <div className="relative z-0 bg-white">
+                {currentStep === 1 && (
+                  <IncidentDetailsStep
+                    formData={formData}
+                    updateFormData={updateFormData}
+                    onNext={handleNext}
+                    toast={toast}
+                  />
+                )}
+                {currentStep === 2 && (
+                  <PhotoDescriptionStep
+                    formData={formData}
+                    updateFormData={updateFormData}
+                    onNext={handleNext}
+                    onPrevious={handlePrevious}
+                    toast={toast}
+                  />
+                )}
+                {currentStep === 3 && (
+                  <PhoneSubmitStep
+                    formData={formData}
+                    updateFormData={updateFormData}
+                    onSubmit={handleSubmit}
+                    onPrevious={handlePrevious}
+                    toast={toast}
+                    isSubmitting={isCreatingReport}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </main>
+      </div>
+    </>
   );
 }

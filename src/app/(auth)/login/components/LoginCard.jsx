@@ -1,13 +1,11 @@
 "use client";
 
 import { useLoginUser } from "@/hooks/user/useLoginUser";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Phone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-
-// ─── Shared Components ────────────────────────────────────────────────────────
 
 function Input({
   id,
@@ -28,7 +26,7 @@ function Input({
       value={value}
       onChange={onChange}
       maxLength={maxLength}
-      className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition ${className}`}
+      className={`w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 placeholder-gray-400 transition focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500 sm:rounded-lg sm:py-2 ${className}`}
     />
   );
 }
@@ -50,7 +48,6 @@ const LoginCard = () => {
   const [errors, setErrors] = useState({});
 
   const { mutate: loginUser, isPending: isLoggingIn } = useLoginUser();
-
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -75,6 +72,7 @@ const LoginCard = () => {
       setErrors(validationErrors);
       return;
     }
+
     loginUser(
       { phone_number: form.phone, password: form.password },
       {
@@ -90,94 +88,112 @@ const LoginCard = () => {
   };
 
   return (
-    <div className="bg-white container py-8 space-y-5 max-w-4xl">
-      {/* Heading */}
-      <div className="text-center space-y-1">
-        <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
-        <p className="text-gray-500 text-sm">
-          Sign in to the emergency response network
-        </p>
-      </div>
-
-      <div className="space-y-5">
-        {/* Phone Number */}
-        <div className="space-y-2">
-          <Label htmlFor="phone">
-            Phone Number <span className="text-red-500">*</span>
-          </Label>
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
-              +977
-            </span>
-            <Input
-              id="phone"
-              name="phone"
-              type="tel"
-              placeholder="Enter your phone number"
-              value={form.phone}
-              onChange={handleChange}
-              maxLength={10}
-              className={`pl-14 ${errors.phone ? "border-red-500 focus:ring-red-500" : ""}`}
-            />
-          </div>
-          {errors.phone ? (
-            <p className="text-xs text-red-500">{errors.phone}</p>
-          ) : (
-            <p className="text-xs text-gray-400">
-              Enter the number linked to your account
-            </p>
-          )}
+    <div className="container max-w-4xl bg-white px-4 py-4 pb-28 sm:px-0 sm:py-8 sm:pb-8">
+      <div className="mx-auto max-w-md space-y-5 rounded-2xl bg-white p-5 shadow-sm sm:max-w-none sm:space-y-5 sm:rounded-none sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="space-y-1 text-center">
+          <h2 className="text-3xl font-bold text-gray-900">Welcome Back</h2>
+          <p className="text-sm text-gray-500">
+            Sign in to the emergency response network
+          </p>
         </div>
 
-        {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="password">
-            Password <span className="text-red-500">*</span>
-          </Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <Input
-              id="password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Enter your password"
-              value={form.password}
-              onChange={handleChange}
-              className={`pl-10 pr-10 ${errors.password ? "border-red-500 focus:ring-red-500" : ""}`}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+        <div className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="phone">
+              Phone Number <span className="text-red-500">*</span>
+            </Label>
+
+            <div className="relative">
+              <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 sm:hidden" />
+              <span className="pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 text-sm text-gray-400 sm:left-3">
+                +977
+              </span>
+
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                placeholder="Enter your phone number"
+                value={form.phone}
+                onChange={handleChange}
+                maxLength={10}
+                className={`pl-20 sm:pl-14 ${
+                  errors.phone ? "border-red-500 focus:ring-red-500" : ""
+                }`}
+              />
+            </div>
+
+            {errors.phone ? (
+              <p className="text-xs text-red-500">{errors.phone}</p>
+            ) : (
+              <p className="text-xs text-gray-400">
+                Enter the number linked to your account
+              </p>
+            )}
           </div>
-          {errors.password && (
-            <p className="text-xs text-red-500">{errors.password}</p>
-          )}
-        </div>
 
-        {/* Submit */}
-        <button
-          type="button"
-          onClick={handleSubmit}
-          disabled={isLoggingIn}
-          className="w-full h-12 bg-red-600 hover:bg-red-700 disabled:bg-red-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-all text-sm"
-        >
-          {isLoggingIn ? "Signing in..." : "Login"}
-        </button>
+          <div className="space-y-2">
+            <Label htmlFor="password">
+              Password <span className="text-red-500">*</span>
+            </Label>
 
-        {/* Register link */}
-        <p className="text-center text-sm text-gray-500">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/register"
-            className="text-red-600 font-medium hover:underline"
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={handleChange}
+                className={`pl-10 pr-12 ${
+                  errors.password ? "border-red-500 focus:ring-red-500" : ""
+                }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 sm:h-8 sm:w-8"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+
+            {errors.password ? (
+              <p className="text-xs text-red-500">{errors.password}</p>
+            ) : (
+              <p className="text-xs text-gray-400">
+                Use your account password to continue
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isLoggingIn}
+            className="h-12 w-full rounded-xl bg-red-600 text-sm font-medium text-white transition-all hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-red-400 sm:rounded-lg"
           >
-            Register here
-          </Link>
-        </p>
+            {isLoggingIn ? "Signing in..." : "Login"}
+          </button>
+
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:hidden">
+            <p className="text-center text-xs leading-5 text-gray-500">
+              Secure access for emergency responders, administrators, and system
+              users.
+            </p>
+          </div>
+
+          <p className="text-center text-sm text-gray-500">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-red-600 hover:underline"
+            >
+              Register here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

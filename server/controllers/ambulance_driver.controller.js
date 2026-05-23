@@ -21,7 +21,7 @@ export const handle_submit_ambulance_driver_application = async (req, res) => {
       });
     }
 
-    const {
+    const { 
       full_name,
       phone_number,
       nid_number,

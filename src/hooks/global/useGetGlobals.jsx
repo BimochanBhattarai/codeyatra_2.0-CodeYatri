@@ -4,7 +4,7 @@ export const useGetGlobals = () => {
   return useQuery({
     queryKey: ["globalSettings"],
     queryFn: async () => {
-      const response = await fetch("/api/global", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/global`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",

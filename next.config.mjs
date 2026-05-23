@@ -1,23 +1,19 @@
 /** @type {import('next').NextConfig} */
 
-const api_url =
-  // process.env.API_URL || "https://toptiergaming-z0f5.onrender.com";
-  process.env.API_URL || "http://localhost:4000";
-
 const nextConfig = {
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: `${api_url}/api/:path*`,
-      },
-    ];
-  },
+  output: "export",
+  trailingSlash: true,
   images: {
     remotePatterns: [
       {
         protocol: "http",
         hostname: "localhost",
+        pathname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "192.168.1.65",
+        port: "4000",
         pathname: "**",
       },
       {
@@ -34,6 +30,8 @@ const nextConfig = {
     unoptimized: true,
   },
   env: {
+    NEXT_PUBLIC_API_URL:
+      process.env.NEXT_PUBLIC_API_URL || "http://192.168.1.65:4000",
     IMAGE_BASE_URL: process.env.IMAGE_BASE_URL,
   },
 };
